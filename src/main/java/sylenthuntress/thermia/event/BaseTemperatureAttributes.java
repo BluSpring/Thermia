@@ -2,9 +2,9 @@ package sylenthuntress.thermia.event;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBiomeTags;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
 import sylenthuntress.thermia.data.ThermiaTags;
 import sylenthuntress.thermia.registry.ThermiaAttributes;
@@ -60,15 +60,15 @@ public class BaseTemperatureAttributes implements ServerEntityEvents.Load {
             coldOffset += 3;
         }
 
-        if (entity.getType().is(ThermiaTags.EntityType.HAS_FUR)) {
+        if (entity.is(ThermiaTags.EntityType.HAS_FUR)) {
             coldOffset += 2;
             heatOffset -= 1.5;
         }
-        if (entity.getType().is(ThermiaTags.EntityType.HAS_WOOL)) {
+        if (entity.is(ThermiaTags.EntityType.HAS_WOOL)) {
             coldOffset += 4.5;
             heatOffset -= 2.5;
         }
-        if (entity.getType().is(ThermiaTags.EntityType.UNDEAD)) {
+        if (entity.is(ThermiaTags.EntityType.UNDEAD)) {
             coldOffset += 10;
             heatOffset += 3;
         }

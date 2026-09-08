@@ -3,15 +3,13 @@ package sylenthuntress.thermia.data.predicate;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
-import net.minecraft.world.level.storage.loot.predicates.LootItemConditionType;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
+import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
-import net.minecraft.util.context.ContextKey;
-import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.core.Vec3i;
-import sylenthuntress.thermia.registry.loot_conditions.ThermiaLootConditionTypes;
 
 import java.util.Optional;
 import java.util.Set;
@@ -53,22 +51,22 @@ public record TemperatureLootCondition(Optional<EntityTemperaturePredicate> enti
     }
 
     @Override
-    public LootItemConditionType getType() {
-        return ThermiaLootConditionTypes.TEMPERATURE;
+    public MapCodec<? extends LootItemCondition> codec() {
+        return CODEC;
     }
 
     @Override
     public Set<ContextKey<?>> getReferencedContextParams() {
         return this.entity.map(entityTarget -> Set.of(
                 LootContextParams.ORIGIN,
-                entityTarget.getParam()
+                entityTarget.contextParam()
         )).orElseGet(() -> Set.of(LootContextParams.ORIGIN));
     }
 
     @SuppressWarnings({"OptionalGetWithoutIsPresent", "DataFlowIssue"})
     public boolean test(LootContext lootContext) {
         Vec3 origin = lootContext.getOptionalParameter(LootContextParams.ORIGIN);
-        return (this.entityPredicate.isEmpty() || this.entityPredicate.get().test(lootContext.getOptionalParameter(this.entity.get().getParam())))
+        return (this.entityPredicate.isEmpty() || this.entityPredicate.get().test(lootContext.getOptionalParameter(this.entity.get().contextParam())))
                 && (this.locationPredicate.isEmpty() || this.locationPredicate.get().test(lootContext.getLevel(), BlockPos.containing(origin)));
     }
 }

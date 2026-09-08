@@ -3,24 +3,26 @@ package sylenthuntress.thermia.temperature;
 import io.wispforest.owo.config.ConfigSynchronizer;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBiomeTags;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.util.Mth;
+import net.minecraft.util.Util;
+import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.level.material.FluidState;
-import net.minecraft.core.Holder;
-import net.minecraft.tags.FluidTags;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.network.chat.Component;
-import net.minecraft.Util;
-import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.Level;
-import net.minecraft.world.level.biome.Biome;
-import net.minecraft.world.level.dimension.DimensionType;
 import sylenthuntress.thermia.Thermia;
 import sylenthuntress.thermia.access.LivingEntityAccess;
 import sylenthuntress.thermia.compat.SereneSeasonsCompatBase;
@@ -51,7 +53,7 @@ public abstract class TemperatureHelper {
         final Holder<Biome> biome = world.getBiome(blockPos);
         float biomeTemperature = biome.value().getBaseTemperature();
 
-        if (dimension.ultraWarm())
+        if (world.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, blockPos)) // ultrawarm??
             biomeTemperature *= 2;
 
         // Guard return for skylight calculations in nether-like dimensions
@@ -60,9 +62,9 @@ public abstract class TemperatureHelper {
 
         // Calculate skylight modifier
         float maxTimeBonus = biome.is(ConventionalBiomeTags.IS_DRY) ? 2.5F : 1F;
-        float timeBonus = (float) (
-                (maxTimeBonus / 2) * Math.cos(
-                        world.getSunAngle(1.0F)
+        float timeBonus = (
+                (maxTimeBonus / 2f) * Mth.cos(
+                    world.environmentAttributes().getValue(EnvironmentAttributes.SUN_ANGLE, blockPos) * Mth.DEG_TO_RAD
                 ) + 1
         );
 

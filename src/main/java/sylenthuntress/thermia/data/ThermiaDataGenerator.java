@@ -2,15 +2,15 @@ package sylenthuntress.thermia.data;
 
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
-import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
+import net.fabricmc.fabric.api.datagen.v1.FabricPackOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricAdvancementProvider;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.advancements.AdvancementType;
-import net.minecraft.world.item.Items;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Items;
 import sylenthuntress.thermia.Thermia;
 import sylenthuntress.thermia.data.advancement.criterion.FreezeCriterion;
 import sylenthuntress.thermia.data.advancement.criterion.OverheatCriterion;
@@ -28,7 +28,7 @@ public class ThermiaDataGenerator implements DataGeneratorEntrypoint {
     }
 
     static class AdvancementsProvider extends FabricAdvancementProvider {
-        protected AdvancementsProvider(FabricDataOutput dataGen, CompletableFuture<HolderLookup.Provider> registryLookup) {
+        protected AdvancementsProvider(FabricPackOutput dataGen, CompletableFuture<HolderLookup.Provider> registryLookup) {
             super(dataGen, registryLookup);
         }
 
@@ -39,7 +39,7 @@ public class ThermiaDataGenerator implements DataGeneratorEntrypoint {
                             ThermiaItems.THERMIA_ICON,
                             Component.translatable("advancements.thermia.root.title"),
                             Component.translatable("advancements.thermia.root.description"),
-                            ResourceLocation.withDefaultNamespace("textures/block/powder_snow.png"),
+                            Identifier.withDefaultNamespace("textures/block/powder_snow.png"),
                             AdvancementType.TASK,
                             true,
                             true,

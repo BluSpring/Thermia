@@ -1,11 +1,10 @@
 package sylenthuntress.thermia.mixin.temperature;
 
 import com.mojang.authlib.GameProfile;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -18,7 +17,6 @@ import sylenthuntress.thermia.registry.ThermiaStatusEffects;
 import sylenthuntress.thermia.temperature.GrantedThermoregulation;
 import sylenthuntress.thermia.temperature.TemperatureHelper;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,7 +34,7 @@ public abstract class PlayerMixin extends LivingEntity {
             method = "<init>",
             at = @At("TAIL")
     )
-    private void thermia$allowThermoregulation(Level world, BlockPos pos, float yaw, GameProfile gameProfile, CallbackInfo ci) {
+    private void thermia$allowThermoregulation(Level world, GameProfile gameProfile, CallbackInfo ci) {
         if (world.isClientSide()) {
             return;
         }
@@ -44,9 +42,9 @@ public abstract class PlayerMixin extends LivingEntity {
         // Apply thermoregulation on first join
         final List<UUID> grantedThermoregulationToList = world.getAttachedOrCreate(
                 ThermiaAttachmentTypes.GRANTED_THERMOREGULATION
-        ).playerUUIDs().stream().map(UUID::fromString).toList();
+        ).playerUUIDs();
 
-        if (grantedThermoregulationToList.contains(gameProfile.getId())) {
+        if (grantedThermoregulationToList.contains(gameProfile.id())) {
             return;
         }
 
@@ -54,7 +52,7 @@ public abstract class PlayerMixin extends LivingEntity {
         world.setAttached(
                 ThermiaAttachmentTypes.GRANTED_THERMOREGULATION,
                 GrantedThermoregulation.addPlayer(
-                        new ArrayList<>(grantedThermoregulationToList.stream().map(UUID::toString).toList()),
+                        grantedThermoregulationToList,
                         gameProfile
                 )
         );

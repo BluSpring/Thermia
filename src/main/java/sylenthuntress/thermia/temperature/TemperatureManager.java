@@ -1,11 +1,11 @@
 package sylenthuntress.thermia.temperature;
 
 import io.wispforest.owo.config.ConfigSynchronizer;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.tags.FluidTags;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
-import net.minecraft.tags.FluidTags;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.LivingEntity;
 import sylenthuntress.thermia.Thermia;
 import sylenthuntress.thermia.data.ThermiaTags;
 import sylenthuntress.thermia.registry.ThermiaAttachmentTypes;
@@ -220,7 +220,7 @@ public class TemperatureManager {
 
     public boolean canHaveTemperature() {
         return entity.isAlive()
-                && !entity.getType().is(ThermiaTags.EntityType.TEMPERATURE_IMMUNE);
+                && !entity.is(ThermiaTags.EntityType.TEMPERATURE_IMMUNE);
     }
 
     public boolean hasTemperature() {

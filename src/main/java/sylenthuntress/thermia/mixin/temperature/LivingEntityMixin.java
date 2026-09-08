@@ -1,22 +1,22 @@
 package sylenthuntress.thermia.mixin.temperature;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
+import net.minecraft.core.Holder;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.entity.projectile.Snowball;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.Snowball;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.core.Holder;
-import net.minecraft.tags.DamageTypeTags;
-import net.minecraft.tags.EntityTypeTags;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -133,9 +133,9 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityAc
                     interactionTemperatures[0] -= 1.5;
                 if (source.is(DamageTypeTags.IS_FIRE))
                     interactionTemperatures[1] += 1.5;
-                if (source.getEntity().getType().is(ThermiaTags.EntityType.UNDEAD))
+                if (source.getEntity().is(ThermiaTags.EntityType.UNDEAD))
                     interactionTemperatures[0] -= 0.1;
-                if (source.getEntity().getType().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES))
+                if (source.getEntity().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES))
                     interactionTemperatures[1] += 0.5;
             } else {
                 if (source.is(DamageTypeTags.BURN_FROM_STEPPING))

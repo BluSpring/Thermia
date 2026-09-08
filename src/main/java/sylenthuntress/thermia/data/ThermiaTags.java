@@ -17,23 +17,23 @@ public class ThermiaTags {
         );
     }
     public static class EntityType {
-        public static final TagKey<net.minecraft.world.entity.EntityType> CLIMATE_UNAFFECTED = TagKey.create(
+        public static final TagKey<net.minecraft.world.entity.EntityType<?>> CLIMATE_UNAFFECTED = TagKey.create(
                 Registries.ENTITY_TYPE,
                 Thermia.modIdentifier("climate/unaffected")
         );
-        public static final TagKey<net.minecraft.world.entity.EntityType> HAS_FUR = TagKey.create(
+        public static final TagKey<net.minecraft.world.entity.EntityType<?>> HAS_FUR = TagKey.create(
                 Registries.ENTITY_TYPE,
                 Thermia.modIdentifier("climate/has_fur")
         );
-        public static final TagKey<net.minecraft.world.entity.EntityType> HAS_WOOL = TagKey.create(
+        public static final TagKey<net.minecraft.world.entity.EntityType<?>> HAS_WOOL = TagKey.create(
                 Registries.ENTITY_TYPE,
                 Thermia.modIdentifier("climate/has_wool")
         );
-        public static final TagKey<net.minecraft.world.entity.EntityType> UNDEAD = TagKey.create(
+        public static final TagKey<net.minecraft.world.entity.EntityType<?>> UNDEAD = TagKey.create(
                 Registries.ENTITY_TYPE,
                 Thermia.modIdentifier("climate/is_undead")
         );
-        public static final TagKey<net.minecraft.world.entity.EntityType> TEMPERATURE_IMMUNE = TagKey.create(
+        public static final TagKey<net.minecraft.world.entity.EntityType<?>> TEMPERATURE_IMMUNE = TagKey.create(
                 Registries.ENTITY_TYPE,
                 Thermia.modIdentifier("climate/temperature_immune")
         );

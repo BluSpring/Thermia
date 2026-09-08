@@ -3,9 +3,9 @@ package sylenthuntress.thermia.temperature;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.world.entity.LivingEntity;
 import sylenthuntress.thermia.config.ConfigHelper;
 import sylenthuntress.thermia.registry.ThermiaAttachmentTypes;
 import sylenthuntress.thermia.registry.ThermiaAttributes;
@@ -16,7 +16,10 @@ public record TargetTemperature(double value) {
     public static Codec<TargetTemperature> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             Codec.DOUBLE.fieldOf("target_temperature").forGetter(TargetTemperature::value)
     ).apply(instance, TargetTemperature::new));
-    public static StreamCodec<ByteBuf, TargetTemperature> PACKET_CODEC = ByteBufCodecs.fromCodec(CODEC);
+    public static StreamCodec<ByteBuf, TargetTemperature> PACKET_CODEC = StreamCodec.composite(
+        ByteBufCodecs.DOUBLE, TargetTemperature::value,
+        TargetTemperature::new
+    );
 
     public TargetTemperature(LivingEntity entity) {
         this(entity.getAttributeValue(ThermiaAttributes.BASE_TEMPERATURE));

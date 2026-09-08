@@ -3,9 +3,9 @@ package sylenthuntress.thermia.data.predicate;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.advancements.criterion.EntitySubPredicate;
+import net.minecraft.advancements.criterion.MinMaxBounds;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.advancements.critereon.MinMaxBounds;
-import net.minecraft.advancements.critereon.EntitySubPredicate;
 import sylenthuntress.thermia.temperature.TemperatureHelper;
 
 public record EntityTemperaturePredicate(

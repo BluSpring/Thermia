@@ -3,44 +3,44 @@ package sylenthuntress.thermia.temperature;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
-public record TemperatureModifier(ResourceLocation id, double amount, TemperatureModifier.Operation operation) {
+public record TemperatureModifier(Identifier id, double amount, TemperatureModifier.Operation operation) {
     public static final MapCodec<TemperatureModifier> MAP_CODEC = RecordCodecBuilder.mapCodec(
             instance -> instance.group(
-                            ResourceLocation.CODEC.fieldOf("id").forGetter(TemperatureModifier::id),
+                            Identifier.CODEC.fieldOf("id").forGetter(TemperatureModifier::id),
                             Codec.DOUBLE.fieldOf("amount").forGetter(TemperatureModifier::amount),
                             TemperatureModifier.Operation.CODEC.fieldOf("operation").forGetter(TemperatureModifier::operation)
                     )
                     .apply(instance, TemperatureModifier::new)
     );
 
-    public boolean idMatches(ResourceLocation id) {
+    public boolean idMatches(Identifier id) {
         return id.equals(this.id);
     }
 
-    public static boolean notGranted(ResourceLocation id) {
+    public static boolean notGranted(Identifier id) {
         return !isGranted(id);
     }
 
-    public static boolean isGranted(ResourceLocation id) {
+    public static boolean isGranted(Identifier id) {
         return id.toString().startsWith("thermia:granted/");
     }
 
     public enum Operation implements StringRepresentable {
-        ADD_VALUE("add_value", 0, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE),
-        ADD_MULTIPLIED_VALUE("add_multiplied_value", 1, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_BASE),
-        SET_TOTAL("set_total", 2, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        ADD_VALUE("add_value", 0, AttributeModifier.Operation.ADD_VALUE),
+        ADD_MULTIPLIED_VALUE("add_multiplied_value", 1, AttributeModifier.Operation.ADD_MULTIPLIED_BASE),
+        SET_TOTAL("set_total", 2, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
 
         public static final Codec<TemperatureModifier.Operation> CODEC = StringRepresentable.fromEnum(TemperatureModifier.Operation::values);
 
         private final String name;
         private final int id;
-        private final net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation attributeOperation;
+        private final AttributeModifier.Operation attributeOperation;
 
-        Operation(final String name, final int id, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation operation) {
+        Operation(final String name, final int id, AttributeModifier.Operation operation) {
             this.name = name;
             this.id = id;
             this.attributeOperation = operation;
@@ -55,7 +55,7 @@ public record TemperatureModifier(ResourceLocation id, double amount, Temperatur
             return this.name;
         }
 
-        public static Operation asTemperatureOperation(net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation operation) {
+        public static Operation asTemperatureOperation(AttributeModifier.Operation operation) {
             return switch (operation) {
                 case ADD_VALUE -> ADD_VALUE;
                 case ADD_MULTIPLIED_BASE -> ADD_MULTIPLIED_VALUE;
@@ -63,7 +63,7 @@ public record TemperatureModifier(ResourceLocation id, double amount, Temperatur
             };
         }
 
-        public net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation asAttributeOperation() {
+        public AttributeModifier.Operation asAttributeOperation() {
             return this.attributeOperation;
         }
     }

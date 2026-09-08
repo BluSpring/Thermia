@@ -7,17 +7,17 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
-import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
 import net.minecraft.commands.arguments.EntityArgument;
-import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.commands.arguments.IdentifierArgument;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.commands.Commands;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import sylenthuntress.thermia.compat.SereneSeasonsCompatBase;
 import sylenthuntress.thermia.registry.ThermiaAttributes;
@@ -54,7 +54,7 @@ public class TemperatureCommand {
     // Thanks to eggohito for the suggestion on optimizing this!
     public static void register(CommandNode<CommandSourceStack> baseNode) {
         var powerNode = Commands.literal("temperature")
-                .requires(source -> source.hasPermission(2))
+                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 .build();
 
         //  Add the sub-nodes as children of the target selection node
@@ -76,7 +76,7 @@ public class TemperatureCommand {
 
         //  Add alias
         var aliasNode = Commands.literal("temp")
-                .requires(source -> source.hasPermission(2))
+                .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                 .build();
         powerNode.getChildren().forEach(aliasNode::addChild);
 
@@ -259,27 +259,27 @@ public class TemperatureCommand {
         public static LiteralCommandNode<CommandSourceStack> get() {
             return Commands.literal("modifier")
                     .then(Commands.literal("add")
-                            .then(Commands.argument("id", ResourceLocationArgument.id())
-                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_VALUE))
+                            .then(Commands.argument("id", IdentifierArgument.id())
+                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), IdentifierArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_VALUE))
                                     .then(Commands.argument("amount", DoubleArgumentType.doubleArg())
                                             .then(Commands.literal("add_value")
-                                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_VALUE)))
+                                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), IdentifierArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_VALUE)))
                                             .then(Commands.literal("add_multiplied_value")
-                                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_MULTIPLIED_VALUE)))
+                                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), IdentifierArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_MULTIPLIED_VALUE)))
                                             .then(Commands.literal("set_total")
-                                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.SET_TOTAL))))))
+                                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), IdentifierArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.SET_TOTAL))))))
                     .then(Commands.literal("remove")
-                            .then(Commands.argument("id", ResourceLocationArgument.id())
+                            .then(Commands.argument("id", IdentifierArgument.id())
                                     .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(streamModifiers(EntityArgument.getEntity(context, "target")), builder))
-                                    .executes(context -> executeRemove(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"))))
+                                    .executes(context -> executeRemove(context.getSource(), EntityArgument.getEntity(context, "target"), IdentifierArgument.getId(context, "id"))))
                             .then(Commands.literal("*")
                                     .executes(context -> executeRemoveAll(context.getSource(), EntityArgument.getEntity(context, "target")))))
                     .then(Commands.literal("get")
-                            .then(Commands.argument("id", ResourceLocationArgument.id())
+                            .then(Commands.argument("id", IdentifierArgument.id())
                                     .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(streamModifiers(EntityArgument.getEntity(context, "target")), builder))
-                                    .executes(context -> executeGet(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), 1))
+                                    .executes(context -> executeGet(context.getSource(), EntityArgument.getEntity(context, "target"), IdentifierArgument.getId(context, "id"), 1))
                                     .then(Commands.argument("scale", FloatArgumentType.floatArg())
-                                            .executes(context -> executeGet(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), FloatArgumentType.getFloat(context, "scale")))))).build();
+                                            .executes(context -> executeGet(context.getSource(), EntityArgument.getEntity(context, "target"), IdentifierArgument.getId(context, "id"), FloatArgumentType.getFloat(context, "scale")))))).build();
         }
 
         private static int executeRemoveAll(CommandSourceStack source, Entity target) throws CommandSyntaxException {
@@ -295,7 +295,7 @@ public class TemperatureCommand {
 
             int modifierCount = 0;
 
-            for (ResourceLocation id : temperatureModifiers.getList().stream().map(TemperatureModifier::id).toList()) {
+            for (Identifier id : temperatureModifiers.getList().stream().map(TemperatureModifier::id).toList()) {
                 if (TemperatureModifier.isGranted(id)) {
                     continue;
                 }
@@ -317,7 +317,7 @@ public class TemperatureCommand {
             return displayedModifierCount;
         }
 
-        private static int executeRemove(CommandSourceStack source, Entity target, ResourceLocation id) throws CommandSyntaxException {
+        private static int executeRemove(CommandSourceStack source, Entity target, Identifier id) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
@@ -341,7 +341,7 @@ public class TemperatureCommand {
             return 1;
         }
 
-        private static Stream<ResourceLocation> streamModifiers(Entity target) throws CommandSyntaxException {
+        private static Stream<Identifier> streamModifiers(Entity target) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
@@ -352,7 +352,7 @@ public class TemperatureCommand {
         }
 
 
-        private static int executeGet(CommandSourceStack source, Entity target, ResourceLocation id, double scale) throws CommandSyntaxException {
+        private static int executeGet(CommandSourceStack source, Entity target, Identifier id, double scale) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
@@ -382,7 +382,7 @@ public class TemperatureCommand {
             return (int) ((modifier.amount() * scale) * 1000);
         }
 
-        private static int executeAdd(CommandSourceStack source, Entity target, ResourceLocation id, double value, TemperatureModifier.Operation operation) throws CommandSyntaxException {
+        private static int executeAdd(CommandSourceStack source, Entity target, Identifier id, double value, TemperatureModifier.Operation operation) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }

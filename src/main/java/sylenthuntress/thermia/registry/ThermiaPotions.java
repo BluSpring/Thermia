@@ -1,13 +1,13 @@
 package sylenthuntress.thermia.registry;
 
-import net.fabricmc.fabric.api.registry.FabricBrewingRecipeRegistryBuilder;
+import net.fabricmc.fabric.api.registry.FabricPotionBrewingBuilder;
+import net.minecraft.core.Holder;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.item.alchemy.Potions;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.Registry;
-import net.minecraft.core.Holder;
 import sylenthuntress.thermia.Thermia;
 
 public class ThermiaPotions {
@@ -36,7 +36,7 @@ public class ThermiaPotions {
     }
 
     public static void registerAll() {
-        FabricBrewingRecipeRegistryBuilder.BUILD.register(builder -> {
+        FabricPotionBrewingBuilder.BUILD.register(builder -> {
             builder.addMix(
                     Potions.FIRE_RESISTANCE,
                     Items.FERMENTED_SPIDER_EYE,

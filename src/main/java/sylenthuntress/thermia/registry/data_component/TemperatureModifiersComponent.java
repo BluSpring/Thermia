@@ -2,9 +2,9 @@ package sylenthuntress.thermia.registry.data_component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.Util;
 import net.minecraft.world.entity.EquipmentSlotGroup;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.Util;
 import sylenthuntress.thermia.temperature.TemperatureModifier;
 
 import java.text.DecimalFormat;
@@ -47,7 +47,7 @@ public record TemperatureModifiersComponent(List<Entry> modifiers, boolean showI
         return new TemperatureModifiersComponent(newModifiers, this.showInTooltip);
     }
 
-    public boolean hasModifier(ResourceLocation id) {
+    public boolean hasModifier(Identifier id) {
         return modifiers.stream().anyMatch((entry -> entry.modifier().idMatches(id)));
     }
 
