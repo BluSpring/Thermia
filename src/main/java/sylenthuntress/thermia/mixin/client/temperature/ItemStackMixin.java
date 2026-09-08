@@ -4,17 +4,17 @@ import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
-import net.minecraft.component.ComponentHolder;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.AttributeModifierSlot;
-import net.minecraft.component.type.AttributeModifiersComponent;
-import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.core.component.DataComponentHolder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -28,7 +28,7 @@ import sylenthuntress.thermia.temperature.TemperatureModifier;
 import java.util.function.Consumer;
 
 @Mixin(ItemStack.class)
-public abstract class ItemStackMixin implements ComponentHolder {
+public abstract class ItemStackMixin implements DataComponentHolder {
     @Unique
     protected int slotIndex0 = -1;
     @Unique
@@ -36,17 +36,17 @@ public abstract class ItemStackMixin implements ComponentHolder {
 
     @SuppressWarnings("DataFlowIssue")
     @ModifyExpressionValue(
-            method = "applyAttributeModifier",
+            method = "forEachModifier",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/item/ItemStack;getOrDefault(Lnet/minecraft/component/ComponentType;Ljava/lang/Object;)Ljava/lang/Object;"
+                    target = "Lnet/minecraft/world/item/ItemStack;getOrDefault(Lnet/minecraft/core/component/DataComponentType;Ljava/lang/Object;)Ljava/lang/Object;"
             )
     )
     private Object thermia$allowTemperatureModifiers(Object obj) {
-        var component = (AttributeModifiersComponent) obj;
+        var component = (ItemAttributeModifiers) obj;
 
         // Guard if no temperature modifiers are found on stack, or if they're hidden
-        if (!this.contains(ThermiaComponents.TEMPERATURE_MODIFIERS)
+        if (!this.has(ThermiaComponents.TEMPERATURE_MODIFIERS)
                 || !this.get(ThermiaComponents.TEMPERATURE_MODIFIERS).showInTooltip()) {
             return component;
         }
@@ -54,11 +54,11 @@ public abstract class ItemStackMixin implements ComponentHolder {
         // Add temperature modifiers as faux attribute modifiers
         for (TemperatureModifiersComponent.Entry entry
                 : this.get(ThermiaComponents.TEMPERATURE_MODIFIERS).modifiers()) {
-            component = component.with(
+            component = component.withModifierAdded(
                     ThermiaAttributes.BASE_TEMPERATURE,
-                    new EntityAttributeModifier(
+                    new AttributeModifier(
                             // Suffix is used to identify itself as a faux attribute
-                            entry.modifier().id().withSuffixedPath(".temperature_modifier"),
+                            entry.modifier().id().withSuffix(".temperature_modifier"),
                             entry.modifier().amount(),
                             entry.modifier().operation().asAttributeOperation()
                     ),
@@ -73,14 +73,14 @@ public abstract class ItemStackMixin implements ComponentHolder {
 
     @SuppressWarnings("DataFlowIssue")
     @ModifyExpressionValue(
-            method = "appendAttributeModifiersTooltip",
+            method = "addAttributeTooltips",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/component/type/AttributeModifiersComponent;showInTooltip()Z"
+                    target = "Lnet/minecraft/world/item/component/ItemAttributeModifiers;showInTooltip()Z"
             )
     )
     private boolean thermia$allowTemperatureModifiers(boolean original) {
-        if (this.contains(ThermiaComponents.TEMPERATURE_MODIFIERS)) {
+        if (this.has(ThermiaComponents.TEMPERATURE_MODIFIERS)) {
             return original || this.get(ThermiaComponents.TEMPERATURE_MODIFIERS).showInTooltip();
         }
 
@@ -92,21 +92,21 @@ public abstract class ItemStackMixin implements ComponentHolder {
             method = "method_57370",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/item/ItemStack;appendAttributeModifierTooltip(Ljava/util/function/Consumer;Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/registry/entry/RegistryEntry;Lnet/minecraft/entity/attribute/EntityAttributeModifier;)V"
+                    target = "Lnet/minecraft/world/item/ItemStack;addModifierTooltip(Ljava/util/function/Consumer;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/core/Holder;Lnet/minecraft/world/entity/ai/attributes/AttributeModifier;)V"
             )
     )
     private void thermia$applyTemperatureModifiers(
-            ItemStack instance,
-            Consumer<Text> consumer,
-            @Nullable PlayerEntity player,
-            RegistryEntry<EntityAttribute> attribute,
-            EntityAttributeModifier modifier,
-            Operation<Void> original,
-            @Local(argsOnly = true) AttributeModifierSlot modifierSlot) {
+        ItemStack instance,
+        Consumer<Component> consumer,
+        @Nullable Player player,
+        Holder<Attribute> attribute,
+        AttributeModifier modifier,
+        Operation<Void> original,
+        @Local(argsOnly = true) EquipmentSlotGroup modifierSlot) {
         // Guard in case of regular attribute modifiers
         if (!modifier.id().toString().endsWith(".temperature_modifier")) {
             // Prevent showing hidden attribute modifiers
-            if (!instance.get(DataComponentTypes.ATTRIBUTE_MODIFIERS).showInTooltip()) {
+            if (!instance.get(DataComponents.ATTRIBUTE_MODIFIERS).showInTooltip()) {
                 return;
             }
 
@@ -156,10 +156,10 @@ public abstract class ItemStackMixin implements ComponentHolder {
             displayAmount = amount * 100.0;
         } else if (modifier.operation().ordinal() == 2) {
             consumer.accept(
-                    Text.translatable(
+                    Component.translatable(
                             "temperature.modifier.new",
                             amount
-                    ).formatted(Formatting.BLUE)
+                    ).withStyle(ChatFormatting.BLUE)
             );
             return;
         } else {
@@ -169,29 +169,29 @@ public abstract class ItemStackMixin implements ComponentHolder {
         // Finally apply tooltip
         if (amount > 0.0) {
             consumer.accept(
-                    Text.translatable(
+                    Component.translatable(
                             "temperature.modifier.hot."
                                     + TemperatureModifier.Operation.asTemperatureOperation(modifier.operation())
                                     .getId(),
                             TemperatureModifiersComponent.DECIMAL_FORMAT.format(displayAmount)
                     ).append(
-                            Text.translatable(temperatureScale)
+                            Component.translatable(temperatureScale)
                     ).append(
-                            Text.translatable("temperature.symbol.fire", " ")
-                    ).formatted(Formatting.GOLD)
+                            Component.translatable("temperature.symbol.fire", " ")
+                    ).withStyle(ChatFormatting.GOLD)
             );
         } else {
             consumer.accept(
-                    Text.translatable(
+                    Component.translatable(
                             "temperature.modifier.cold."
                                     + TemperatureModifier.Operation.asTemperatureOperation(modifier.operation())
                                     .getId(),
                             TemperatureModifiersComponent.DECIMAL_FORMAT.format(-displayAmount)
                     ).append(
-                            Text.translatable(temperatureScale)
+                            Component.translatable(temperatureScale)
                     ).append(
-                            Text.translatable("temperature.symbol.snowflake", " ")
-                    ).formatted(Formatting.AQUA)
+                            Component.translatable("temperature.symbol.snowflake", " ")
+                    ).withStyle(ChatFormatting.AQUA)
             );
         }
     }

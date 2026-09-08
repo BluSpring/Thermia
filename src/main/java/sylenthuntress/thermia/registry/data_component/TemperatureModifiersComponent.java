@@ -2,9 +2,9 @@ package sylenthuntress.thermia.registry.data_component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.component.type.AttributeModifierSlot;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.Util;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.Util;
 import sylenthuntress.thermia.temperature.TemperatureModifier;
 
 import java.text.DecimalFormat;
@@ -30,7 +30,7 @@ public record TemperatureModifiersComponent(List<Entry> modifiers, boolean showI
                     -> new TemperatureModifiersComponent(entries, true)
     );
 
-    public TemperatureModifiersComponent with(TemperatureModifier modifier, AttributeModifierSlot slot) {
+    public TemperatureModifiersComponent with(TemperatureModifier modifier, EquipmentSlotGroup slot) {
         if (hasModifier(modifier.id())) {
             return this;
         }
@@ -47,15 +47,15 @@ public record TemperatureModifiersComponent(List<Entry> modifiers, boolean showI
         return new TemperatureModifiersComponent(newModifiers, this.showInTooltip);
     }
 
-    public boolean hasModifier(Identifier id) {
+    public boolean hasModifier(ResourceLocation id) {
         return modifiers.stream().anyMatch((entry -> entry.modifier().idMatches(id)));
     }
 
-    public record Entry(TemperatureModifier modifier, AttributeModifierSlot slot) {
+    public record Entry(TemperatureModifier modifier, EquipmentSlotGroup slot) {
         public static final Codec<TemperatureModifiersComponent.Entry> CODEC = RecordCodecBuilder.create(
                 instance -> instance.group(
                                 TemperatureModifier.MAP_CODEC.forGetter(TemperatureModifiersComponent.Entry::modifier),
-                                AttributeModifierSlot.CODEC.optionalFieldOf("slot", AttributeModifierSlot.ANY).forGetter(TemperatureModifiersComponent.Entry::slot)
+                                EquipmentSlotGroup.CODEC.optionalFieldOf("slot", EquipmentSlotGroup.ANY).forGetter(TemperatureModifiersComponent.Entry::slot)
                         )
                         .apply(instance, TemperatureModifiersComponent.Entry::new)
         );

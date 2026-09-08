@@ -2,18 +2,18 @@ package sylenthuntress.thermia.event;
 
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBiomeTags;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.biome.Biome;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.biome.Biome;
 import sylenthuntress.thermia.data.ThermiaTags;
 import sylenthuntress.thermia.registry.ThermiaAttributes;
 import sylenthuntress.thermia.temperature.TemperatureHelper;
 
 public class BaseTemperatureAttributes implements ServerEntityEvents.Load {
     @Override
-    public void onLoad(Entity entity, ServerWorld world) {
-        if (!(entity instanceof LivingEntity livingEntity) || entity.isPlayer()) {
+    public void onLoad(Entity entity, ServerLevel world) {
+        if (!(entity instanceof LivingEntity livingEntity) || entity.isAlwaysTicking()) {
             return;
         }
 
@@ -21,7 +21,7 @@ public class BaseTemperatureAttributes implements ServerEntityEvents.Load {
         calculateOffsets(livingEntity, world);
     }
 
-    protected void calculateBaseTemperature(LivingEntity entity, ServerWorld world) {
+    protected void calculateBaseTemperature(LivingEntity entity, ServerLevel world) {
         final var temperatureManager = TemperatureHelper.getTemperatureManager(entity);
         double baseTemperature = temperatureManager.getBaseTemperature();
 
@@ -30,16 +30,16 @@ public class BaseTemperatureAttributes implements ServerEntityEvents.Load {
             return;
         }
 
-        double ambientTemperature = TemperatureHelper.getAmbientTemperature(world, entity.getBlockPos());
+        double ambientTemperature = TemperatureHelper.getAmbientTemperature(world, entity.blockPosition());
         baseTemperature = (baseTemperature + ambientTemperature) / 2;
 
-        var attributeInstance = entity.getAttributes().getCustomInstance(ThermiaAttributes.BASE_TEMPERATURE);
+        var attributeInstance = entity.getAttributes().getInstance(ThermiaAttributes.BASE_TEMPERATURE);
         if (attributeInstance != null) {
             attributeInstance.setBaseValue(baseTemperature);
         }
     }
 
-    protected void calculateOffsets(LivingEntity entity, ServerWorld world) {
+    protected void calculateOffsets(LivingEntity entity, ServerLevel world) {
         double coldOffset = entity.getAttributeValue(ThermiaAttributes.COLD_OFFSET_THRESHOLD);
         double heatOffset = entity.getAttributeValue(ThermiaAttributes.HEAT_OFFSET_THRESHOLD);
 
@@ -50,35 +50,35 @@ public class BaseTemperatureAttributes implements ServerEntityEvents.Load {
             return;
         }
 
-        var biome = world.getBiome(entity.getBlockPos());
+        var biome = world.getBiome(entity.blockPosition());
 
-        if (biome.isIn(ConventionalBiomeTags.IS_DRY)) {
+        if (biome.is(ConventionalBiomeTags.IS_DRY)) {
             heatOffset += 3;
             coldOffset += 3;
         }
-        if (biome.value().getPrecipitation(entity.getBlockPos(), world.getSeaLevel()) == Biome.Precipitation.SNOW) {
+        if (biome.value().getPrecipitationAt(entity.blockPosition(), world.getSeaLevel()) == Biome.Precipitation.SNOW) {
             coldOffset += 3;
         }
 
-        if (entity.getType().isIn(ThermiaTags.EntityType.HAS_FUR)) {
+        if (entity.getType().is(ThermiaTags.EntityType.HAS_FUR)) {
             coldOffset += 2;
             heatOffset -= 1.5;
         }
-        if (entity.getType().isIn(ThermiaTags.EntityType.HAS_WOOL)) {
+        if (entity.getType().is(ThermiaTags.EntityType.HAS_WOOL)) {
             coldOffset += 4.5;
             heatOffset -= 2.5;
         }
-        if (entity.getType().isIn(ThermiaTags.EntityType.UNDEAD)) {
+        if (entity.getType().is(ThermiaTags.EntityType.UNDEAD)) {
             coldOffset += 10;
             heatOffset += 3;
         }
 
-        var attributeInstance = entity.getAttributes().getCustomInstance(ThermiaAttributes.COLD_OFFSET_THRESHOLD);
+        var attributeInstance = entity.getAttributes().getInstance(ThermiaAttributes.COLD_OFFSET_THRESHOLD);
         if (attributeInstance != null) {
             attributeInstance.setBaseValue(coldOffset);
         }
 
-        attributeInstance = entity.getAttributes().getCustomInstance(ThermiaAttributes.HEAT_OFFSET_THRESHOLD);
+        attributeInstance = entity.getAttributes().getInstance(ThermiaAttributes.HEAT_OFFSET_THRESHOLD);
         if (attributeInstance != null) {
             attributeInstance.setBaseValue(heatOffset);
         }

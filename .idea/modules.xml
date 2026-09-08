@@ -5,6 +5,8 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Thermia.iml" filepath="$PROJECT_DIR$/.idea/modules/Thermia.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Thermia.main.iml" filepath="$PROJECT_DIR$/.idea/modules/Thermia.main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/Thermia.test.iml" filepath="$PROJECT_DIR$/.idea/modules/Thermia.test.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/sylenthuntress.thermia.Thermia.main.iml" filepath="$PROJECT_DIR$/.idea/modules/sylenthuntress.thermia.Thermia.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/sylenthuntress.thermia.Thermia.test.iml" filepath="$PROJECT_DIR$/.idea/modules/sylenthuntress.thermia.Thermia.test.iml" />
     </modules>
   </component>
 </project>

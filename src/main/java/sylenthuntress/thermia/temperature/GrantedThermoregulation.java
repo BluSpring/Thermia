@@ -4,8 +4,8 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.codec.ByteBufCodecs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +17,7 @@ public record GrantedThermoregulation(List<String> playerUUIDs) {
             Codec.list(Codec.STRING).fieldOf("player_uuids").forGetter(GrantedThermoregulation::playerUUIDs)
     ).apply(instance, GrantedThermoregulation::new));
 
-    public static PacketCodec<ByteBuf, GrantedThermoregulation> PACKET_CODEC = PacketCodecs.codec(CODEC);
+    public static StreamCodec<ByteBuf, GrantedThermoregulation> PACKET_CODEC = ByteBufCodecs.fromCodec(CODEC);
 
     public static GrantedThermoregulation addPlayer(ArrayList<String> playerUUIDs, GameProfile profile) {
         final String uuid = profile.getId().toString();

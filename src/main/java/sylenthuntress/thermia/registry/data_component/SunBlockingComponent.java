@@ -2,14 +2,14 @@ package sylenthuntress.thermia.registry.data_component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.component.type.AttributeModifierSlot;
-import net.minecraft.util.dynamic.Codecs;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.util.ExtraCodecs;
 
-public record SunBlockingComponent(float amount, AttributeModifierSlot slot) {
-    public static final SunBlockingComponent DEFAULT = new SunBlockingComponent(0, AttributeModifierSlot.ANY);
+public record SunBlockingComponent(float amount, EquipmentSlotGroup slot) {
+    public static final SunBlockingComponent DEFAULT = new SunBlockingComponent(0, EquipmentSlotGroup.ANY);
 
     public static final Codec<SunBlockingComponent> CODEC = RecordCodecBuilder.create(builder -> builder.group(
-            Codecs.POSITIVE_FLOAT.fieldOf("amount").forGetter(SunBlockingComponent::amount),
-            AttributeModifierSlot.CODEC.optionalFieldOf("slot", AttributeModifierSlot.ANY).forGetter(SunBlockingComponent::slot)
+            ExtraCodecs.POSITIVE_FLOAT.fieldOf("amount").forGetter(SunBlockingComponent::amount),
+            EquipmentSlotGroup.CODEC.optionalFieldOf("slot", EquipmentSlotGroup.ANY).forGetter(SunBlockingComponent::slot)
     ).apply(builder, SunBlockingComponent::new));
 }

@@ -3,14 +3,14 @@ package sylenthuntress.thermia.mixin.client.temperature;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.RenderTickCounter;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,33 +24,33 @@ import sylenthuntress.thermia.temperature.TemperatureHelper;
 public abstract class GameRendererMixin {
     @Shadow
     @Final
-    private static Identifier field_53899;
+    private static ResourceLocation BLUR_POST_CHAIN_ID;
     @Shadow
     @Final
-    private MinecraftClient client;
+    private Minecraft minecraft;
     @Shadow
-    private @Nullable Identifier postProcessorId;
+    private @Nullable ResourceLocation postEffectId;
 
     @Shadow
-    protected abstract void setPostProcessor(Identifier id);
+    protected abstract void setPostEffect(ResourceLocation id);
 
     @Shadow
-    public abstract void clearPostProcessor();
+    public abstract void clearPostEffect();
 
     @Inject(method = "render", at = @At("HEAD"))
-    private void thermia$loadHyperthermiaShader(RenderTickCounter tickCounter, boolean tick, CallbackInfo ci) {
-        if (client.getCameraEntity() instanceof LivingEntity livingEntity &&
+    private void thermia$loadHyperthermiaShader(DeltaTracker tickCounter, boolean tick, CallbackInfo ci) {
+        if (minecraft.getCameraEntity() instanceof LivingEntity livingEntity &&
                 TemperatureHelper.getTemperatureManager(livingEntity).shouldBlurVision()) {
-            this.setPostProcessor(field_53899);
-        } else if (postProcessorId == field_53899)
-            this.clearPostProcessor();
+            this.setPostEffect(BLUR_POST_CHAIN_ID);
+        } else if (postEffectId == BLUR_POST_CHAIN_ID)
+            this.clearPostEffect();
     }
 
-    @WrapOperation(method = "render", at = @At(value = "NEW", target = "(Lnet/minecraft/client/MinecraftClient;Lnet/minecraft/client/render/VertexConsumerProvider$Immediate;)Lnet/minecraft/client/gui/DrawContext;"))
-    private DrawContext thermia$renderRedVision(MinecraftClient client, VertexConsumerProvider.Immediate vertexConsumers, Operation<DrawContext> original) {
-        DrawContext context = original.call(client, vertexConsumers);
+    @WrapOperation(method = "render", at = @At(value = "NEW", target = "(Lnet/minecraft/client/Minecraft;Lnet/minecraft/client/renderer/MultiBufferSource$BufferSource;)Lnet/minecraft/client/gui/GuiGraphics;"))
+    private GuiGraphics thermia$renderRedVision(Minecraft client, MultiBufferSource.BufferSource vertexConsumers, Operation<GuiGraphics> original) {
+        GuiGraphics context = original.call(client, vertexConsumers);
         if (client.player != null && TemperatureHelper.getTemperatureManager(client.player).isHypothermic()) {
-            int color = MathHelper.hsvToArgb(
+            int color = Mth.hsvToArgb(
                     0,
                     0,
                     1,
@@ -59,8 +59,8 @@ public abstract class GameRendererMixin {
             context.fillGradient(
                     0,
                     0,
-                    client.getWindow().getWidth(),
-                    client.getWindow().getWidth(),
+                    client.getWindow().getScreenWidth(),
+                    client.getWindow().getScreenWidth(),
                     color,
                     color
             );
@@ -68,9 +68,9 @@ public abstract class GameRendererMixin {
         return context;
     }
 
-    @ModifyExpressionValue(method = "renderWorld", at = @At(value = "FIELD", target = "Lnet/minecraft/client/network/ClientPlayerEntity;nauseaIntensity:F"))
+    @ModifyExpressionValue(method = "renderLevel", at = @At(value = "FIELD", target = "Lnet/minecraft/client/player/LocalPlayer;spinningEffectIntensity:F"))
     private float thermia$wobbleVision(float original) {
-        return TemperatureHelper.getTemperatureManager(this.client.player).doHeatEffects()
+        return TemperatureHelper.getTemperatureManager(this.minecraft.player).doHeatEffects()
                 ? Math.max(0.1F, original)
                 : original;
     }

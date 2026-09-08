@@ -4,13 +4,13 @@ import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
 import net.fabricmc.fabric.api.datagen.v1.provider.FabricAdvancementProvider;
-import net.minecraft.advancement.Advancement;
-import net.minecraft.advancement.AdvancementEntry;
-import net.minecraft.advancement.AdvancementFrame;
-import net.minecraft.item.Items;
-import net.minecraft.registry.RegistryWrapper;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.advancements.AdvancementType;
+import net.minecraft.world.item.Items;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import sylenthuntress.thermia.Thermia;
 import sylenthuntress.thermia.data.advancement.criterion.FreezeCriterion;
 import sylenthuntress.thermia.data.advancement.criterion.OverheatCriterion;
@@ -28,62 +28,62 @@ public class ThermiaDataGenerator implements DataGeneratorEntrypoint {
     }
 
     static class AdvancementsProvider extends FabricAdvancementProvider {
-        protected AdvancementsProvider(FabricDataOutput dataGen, CompletableFuture<RegistryWrapper.WrapperLookup> registryLookup) {
+        protected AdvancementsProvider(FabricDataOutput dataGen, CompletableFuture<HolderLookup.Provider> registryLookup) {
             super(dataGen, registryLookup);
         }
 
         @Override
-        public void generateAdvancement(RegistryWrapper.WrapperLookup wrapperLookup, Consumer<AdvancementEntry> consumer) {
-            AdvancementEntry rootAdvancement = Advancement.Builder.create()
+        public void generateAdvancement(HolderLookup.Provider wrapperLookup, Consumer<AdvancementHolder> consumer) {
+            AdvancementHolder rootAdvancement = Advancement.Builder.advancement()
                     .display(
                             ThermiaItems.THERMIA_ICON,
-                            Text.translatable("advancements.thermia.root.title"),
-                            Text.translatable("advancements.thermia.root.description"),
-                            Identifier.ofVanilla("textures/block/powder_snow.png"),
-                            AdvancementFrame.TASK,
+                            Component.translatable("advancements.thermia.root.title"),
+                            Component.translatable("advancements.thermia.root.description"),
+                            ResourceLocation.withDefaultNamespace("textures/block/powder_snow.png"),
+                            AdvancementType.TASK,
                             true,
                             true,
                             false
                     )
-                    .criterion("got_hypothermia", FreezeCriterion.Conditions.create())
-                    .criterion("got_hyperthermia", OverheatCriterion.Conditions.create())
-                    .build(consumer, Thermia.MOD_ID + "/root");
+                    .addCriterion("got_hypothermia", FreezeCriterion.Conditions.create())
+                    .addCriterion("got_hyperthermia", OverheatCriterion.Conditions.create())
+                    .save(consumer, Thermia.MOD_ID + "/root");
             generateColdAdvancements(consumer, rootAdvancement);
             generateHotAdvancements(consumer, rootAdvancement);
         }
 
-        protected void generateColdAdvancements(Consumer<AdvancementEntry> consumer, AdvancementEntry rootAdvancement) {
-            Advancement.Builder.create()
+        protected void generateColdAdvancements(Consumer<AdvancementHolder> consumer, AdvancementHolder rootAdvancement) {
+            Advancement.Builder.advancement()
                     .parent(rootAdvancement)
                     .display(
                             Items.POWDER_SNOW_BUCKET,
-                            Text.translatable("advancements.thermia.got_hypothermia.title"),
-                            Text.translatable("advancements.thermia.got_hypothermia.description"),
+                            Component.translatable("advancements.thermia.got_hypothermia.title"),
+                            Component.translatable("advancements.thermia.got_hypothermia.description"),
                             null,
-                            AdvancementFrame.TASK,
+                            AdvancementType.TASK,
                             true,
                             true,
                             false
                     )
-                    .criterion("got_hypothermia", FreezeCriterion.Conditions.create())
-                    .build(consumer, Thermia.MOD_ID + "/got_hypothermia");
+                    .addCriterion("got_hypothermia", FreezeCriterion.Conditions.create())
+                    .save(consumer, Thermia.MOD_ID + "/got_hypothermia");
         }
 
-        protected void generateHotAdvancements(Consumer<AdvancementEntry> consumer, AdvancementEntry rootAdvancement) {
-            Advancement.Builder.create()
+        protected void generateHotAdvancements(Consumer<AdvancementHolder> consumer, AdvancementHolder rootAdvancement) {
+            Advancement.Builder.advancement()
                     .parent(rootAdvancement)
                     .display(
                             Items.MAGMA_BLOCK,
-                            Text.translatable("advancements.thermia.got_hyperthermia.title"),
-                            Text.translatable("advancements.thermia.got_hyperthermia.description"),
+                            Component.translatable("advancements.thermia.got_hyperthermia.title"),
+                            Component.translatable("advancements.thermia.got_hyperthermia.description"),
                             null,
-                            AdvancementFrame.TASK,
+                            AdvancementType.TASK,
                             true,
                             true,
                             false
                     )
-                    .criterion("got_hyperthermia", OverheatCriterion.Conditions.create())
-                    .build(consumer, Thermia.MOD_ID + "/got_hyperthermia");
+                    .addCriterion("got_hyperthermia", OverheatCriterion.Conditions.create())
+                    .save(consumer, Thermia.MOD_ID + "/got_hyperthermia");
         }
     }
 }

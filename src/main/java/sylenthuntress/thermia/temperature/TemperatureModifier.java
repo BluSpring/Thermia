@@ -3,44 +3,44 @@ package sylenthuntress.thermia.temperature;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.StringIdentifiable;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.StringRepresentable;
 
-public record TemperatureModifier(Identifier id, double amount, TemperatureModifier.Operation operation) {
+public record TemperatureModifier(ResourceLocation id, double amount, TemperatureModifier.Operation operation) {
     public static final MapCodec<TemperatureModifier> MAP_CODEC = RecordCodecBuilder.mapCodec(
             instance -> instance.group(
-                            Identifier.CODEC.fieldOf("id").forGetter(TemperatureModifier::id),
+                            ResourceLocation.CODEC.fieldOf("id").forGetter(TemperatureModifier::id),
                             Codec.DOUBLE.fieldOf("amount").forGetter(TemperatureModifier::amount),
                             TemperatureModifier.Operation.CODEC.fieldOf("operation").forGetter(TemperatureModifier::operation)
                     )
                     .apply(instance, TemperatureModifier::new)
     );
 
-    public boolean idMatches(Identifier id) {
+    public boolean idMatches(ResourceLocation id) {
         return id.equals(this.id);
     }
 
-    public static boolean notGranted(Identifier id) {
+    public static boolean notGranted(ResourceLocation id) {
         return !isGranted(id);
     }
 
-    public static boolean isGranted(Identifier id) {
+    public static boolean isGranted(ResourceLocation id) {
         return id.toString().startsWith("thermia:granted/");
     }
 
-    public enum Operation implements StringIdentifiable {
-        ADD_VALUE("add_value", 0, EntityAttributeModifier.Operation.ADD_VALUE),
-        ADD_MULTIPLIED_VALUE("add_multiplied_value", 1, EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE),
-        SET_TOTAL("set_total", 2, EntityAttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+    public enum Operation implements StringRepresentable {
+        ADD_VALUE("add_value", 0, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_VALUE),
+        ADD_MULTIPLIED_VALUE("add_multiplied_value", 1, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_BASE),
+        SET_TOTAL("set_total", 2, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
 
-        public static final Codec<TemperatureModifier.Operation> CODEC = StringIdentifiable.createCodec(TemperatureModifier.Operation::values);
+        public static final Codec<TemperatureModifier.Operation> CODEC = StringRepresentable.fromEnum(TemperatureModifier.Operation::values);
 
         private final String name;
         private final int id;
-        private final EntityAttributeModifier.Operation attributeOperation;
+        private final net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation attributeOperation;
 
-        Operation(final String name, final int id, EntityAttributeModifier.Operation operation) {
+        Operation(final String name, final int id, net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation operation) {
             this.name = name;
             this.id = id;
             this.attributeOperation = operation;
@@ -51,11 +51,11 @@ public record TemperatureModifier(Identifier id, double amount, TemperatureModif
         }
 
         @Override
-        public String asString() {
+        public String getSerializedName() {
             return this.name;
         }
 
-        public static Operation asTemperatureOperation(EntityAttributeModifier.Operation operation) {
+        public static Operation asTemperatureOperation(net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation operation) {
             return switch (operation) {
                 case ADD_VALUE -> ADD_VALUE;
                 case ADD_MULTIPLIED_BASE -> ADD_MULTIPLIED_VALUE;
@@ -63,7 +63,7 @@ public record TemperatureModifier(Identifier id, double amount, TemperatureModif
             };
         }
 
-        public EntityAttributeModifier.Operation asAttributeOperation() {
+        public net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation asAttributeOperation() {
             return this.attributeOperation;
         }
     }

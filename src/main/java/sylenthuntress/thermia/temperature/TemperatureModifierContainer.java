@@ -1,6 +1,6 @@
 package sylenthuntress.thermia.temperature;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import sylenthuntress.thermia.Thermia;
 
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import java.util.Comparator;
 public class TemperatureModifierContainer {
     protected ArrayList<TemperatureModifier> modifiers = new ArrayList<>();
 
-    public boolean removeModifier(Identifier id) {
+    public boolean removeModifier(ResourceLocation id) {
         int index = 0;
         for (TemperatureModifier modifier : modifiers) {
             if (modifier.idMatches(id)) {
@@ -22,9 +22,9 @@ public class TemperatureModifierContainer {
         return false;
     }
 
-    public boolean removeModifiers(Identifier... modifiers) {
+    public boolean removeModifiers(ResourceLocation... modifiers) {
         boolean bl = false;
-        for (Identifier modifier : modifiers) {
+        for (ResourceLocation modifier : modifiers) {
             removeModifier(modifier);
             bl = true;
         }
@@ -50,7 +50,7 @@ public class TemperatureModifierContainer {
 
     public boolean addGrantedModifier(TemperatureModifier modifier) {
         modifier = new TemperatureModifier(
-                modifier.id().withPrefixedPath("granted/"),
+                modifier.id().withPrefix("granted/"),
                 modifier.amount(),
                 modifier.operation()
         );
@@ -67,11 +67,11 @@ public class TemperatureModifierContainer {
         return bl;
     }
 
-    public boolean hasModifier(Identifier id) {
+    public boolean hasModifier(ResourceLocation id) {
         return modifiers.stream().anyMatch((modifier -> modifier.idMatches(id)));
     }
 
-    public TemperatureModifier getModifier(Identifier id) {
+    public TemperatureModifier getModifier(ResourceLocation id) {
         for (TemperatureModifier modifier : modifiers) {
             if (modifier.idMatches(id))
                 return modifier;

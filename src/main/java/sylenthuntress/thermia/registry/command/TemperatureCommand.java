@@ -7,18 +7,18 @@ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.command.CommandSource;
-import net.minecraft.command.argument.BlockPosArgumentType;
-import net.minecraft.command.argument.EntityArgumentType;
-import net.minecraft.command.argument.IdentifierArgumentType;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.server.command.CommandManager;
-import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.commands.arguments.ResourceLocationArgument;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.commands.Commands;
+import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import sylenthuntress.thermia.compat.SereneSeasonsCompatBase;
 import sylenthuntress.thermia.registry.ThermiaAttributes;
 import sylenthuntress.thermia.temperature.TemperatureHelper;
@@ -30,35 +30,35 @@ import java.util.stream.Stream;
 
 public class TemperatureCommand {
     private static final DynamicCommandExceptionType ENTITY_FAILED_EXCEPTION = new DynamicCommandExceptionType(
-            name -> Text.stringifiedTranslatable("commands.temperature.failure.entity.invalid", name)
+            name -> Component.translatableEscape("commands.temperature.failure.entity.invalid", name)
     );
     private static final DynamicCommandExceptionType INVALID_MODIFIER_EXCEPTION = new DynamicCommandExceptionType(
-            id -> Text.stringifiedTranslatable("commands.temperature.failure.modifier.invalid", id)
+            id -> Component.translatableEscape("commands.temperature.failure.modifier.invalid", id)
     );
     private static final DynamicCommandExceptionType DUPLICATE_MODIFIER_EXCEPTION = new DynamicCommandExceptionType(
-            id -> Text.stringifiedTranslatable("commands.temperature.failure.modifier.duplicate", id)
+            id -> Component.translatableEscape("commands.temperature.failure.modifier.duplicate", id)
     );
     private static final DynamicCommandExceptionType NO_MODIFIERS_EXCEPTION = new DynamicCommandExceptionType(
-            name -> Text.stringifiedTranslatable("commands.temperature.failure.modifier.none", name)
+            name -> Component.translatableEscape("commands.temperature.failure.modifier.none", name)
     );
     private static final DynamicCommandExceptionType INVALID_POSITION_EXCEPTION = new DynamicCommandExceptionType(
-            position -> Text.stringifiedTranslatable("commands.temperature.failure.position.invalid", position)
+            position -> Component.translatableEscape("commands.temperature.failure.position.invalid", position)
     );
     private static final DynamicCommandExceptionType UNLOADED_POSITION_EXCEPTION = new DynamicCommandExceptionType(
-            position -> Text.stringifiedTranslatable("commands.temperature.failure.position.unloaded", position)
+            position -> Component.translatableEscape("commands.temperature.failure.position.unloaded", position)
     );
     private static final DynamicCommandExceptionType ODD_EXCEPTION = new DynamicCommandExceptionType(
-            none -> Text.stringifiedTranslatable("commands.temperature.failure.what")
+            none -> Component.translatableEscape("commands.temperature.failure.what")
     );
 
     // Thanks to eggohito for the suggestion on optimizing this!
-    public static void register(CommandNode<ServerCommandSource> baseNode) {
-        var powerNode = CommandManager.literal("temperature")
-                .requires(source -> source.hasPermissionLevel(2))
+    public static void register(CommandNode<CommandSourceStack> baseNode) {
+        var powerNode = Commands.literal("temperature")
+                .requires(source -> source.hasPermission(2))
                 .build();
 
         //  Add the sub-nodes as children of the target selection node
-        var targetNode = CommandManager.argument("target", EntityArgumentType.entity())
+        var targetNode = Commands.argument("target", EntityArgument.entity())
                 .build();
         targetNode.addChild(GetEntityTemperatureNode.get());
         targetNode.addChild(SetTemperatureNode.get());
@@ -66,7 +66,7 @@ public class TemperatureCommand {
         targetNode.addChild(ModifierTemperatureNode.get());
 
         //  Add the sub-nodes as children of the position selection node
-        var positionNode = CommandManager.argument("position", BlockPosArgumentType.blockPos())
+        var positionNode = Commands.argument("position", BlockPosArgument.blockPos())
                 .build();
         positionNode.addChild(GetPositionTemperatureNode.get());
 
@@ -75,8 +75,8 @@ public class TemperatureCommand {
         powerNode.addChild(positionNode);
 
         //  Add alias
-        var aliasNode = CommandManager.literal("temp")
-                .requires(source -> source.hasPermissionLevel(2))
+        var aliasNode = Commands.literal("temp")
+                .requires(source -> source.hasPermission(2))
                 .build();
         powerNode.getChildren().forEach(aliasNode::addChild);
 
@@ -86,33 +86,33 @@ public class TemperatureCommand {
     }
 
     public static class GetEntityTemperatureNode {
-        public static LiteralCommandNode<ServerCommandSource> get() {
-            return CommandManager.literal("get")
-                    .executes(context -> executeCurrent(context.getSource(), EntityArgumentType.getEntity(context, "target"), 1.0F))
-                    .then(CommandManager.literal("current")
-                            .executes(context -> executeCurrent(context.getSource(), EntityArgumentType.getEntity(context, "target"), 1)).then(CommandManager.argument("scale", FloatArgumentType.floatArg()).executes(context -> executeCurrent(context.getSource(), EntityArgumentType.getEntity(context, "target"), FloatArgumentType.getFloat(context, "scale")))))
-                    .then(CommandManager.literal("unmodified")
-                            .executes(context -> executeUnmodified(context.getSource(), EntityArgumentType.getEntity(context, "target"), 1))
-                            .then(CommandManager.argument("scale", FloatArgumentType.floatArg())
-                                    .executes(context -> executeUnmodified(context.getSource(), EntityArgumentType.getEntity(context, "target"), FloatArgumentType.getFloat(context, "scale")))))
-                    .then(CommandManager.literal("base")
-                            .executes(context -> executeBase(context.getSource(), EntityArgumentType.getEntity(context, "target"), 1))
-                            .then(CommandManager.argument("scale", FloatArgumentType.floatArg())
-                                    .executes(context -> executeBase(context.getSource(), EntityArgumentType.getEntity(context, "target"), FloatArgumentType.getFloat(context, "scale")))))
-                    .then(CommandManager.literal("target")
-                            .executes(context -> executeTarget(context.getSource(), EntityArgumentType.getEntity(context, "target"), 1))
-                            .then(CommandManager.argument("scale", FloatArgumentType.floatArg())
-                                    .executes(context -> executeTarget(context.getSource(), EntityArgumentType.getEntity(context, "target"), FloatArgumentType.getFloat(context, "scale"))))).build();
+        public static LiteralCommandNode<CommandSourceStack> get() {
+            return Commands.literal("get")
+                    .executes(context -> executeCurrent(context.getSource(), EntityArgument.getEntity(context, "target"), 1.0F))
+                    .then(Commands.literal("current")
+                            .executes(context -> executeCurrent(context.getSource(), EntityArgument.getEntity(context, "target"), 1)).then(Commands.argument("scale", FloatArgumentType.floatArg()).executes(context -> executeCurrent(context.getSource(), EntityArgument.getEntity(context, "target"), FloatArgumentType.getFloat(context, "scale")))))
+                    .then(Commands.literal("unmodified")
+                            .executes(context -> executeUnmodified(context.getSource(), EntityArgument.getEntity(context, "target"), 1))
+                            .then(Commands.argument("scale", FloatArgumentType.floatArg())
+                                    .executes(context -> executeUnmodified(context.getSource(), EntityArgument.getEntity(context, "target"), FloatArgumentType.getFloat(context, "scale")))))
+                    .then(Commands.literal("base")
+                            .executes(context -> executeBase(context.getSource(), EntityArgument.getEntity(context, "target"), 1))
+                            .then(Commands.argument("scale", FloatArgumentType.floatArg())
+                                    .executes(context -> executeBase(context.getSource(), EntityArgument.getEntity(context, "target"), FloatArgumentType.getFloat(context, "scale")))))
+                    .then(Commands.literal("target")
+                            .executes(context -> executeTarget(context.getSource(), EntityArgument.getEntity(context, "target"), 1))
+                            .then(Commands.argument("scale", FloatArgumentType.floatArg())
+                                    .executes(context -> executeTarget(context.getSource(), EntityArgument.getEntity(context, "target"), FloatArgumentType.getFloat(context, "scale"))))).build();
         }
 
-        private static int executeBase(ServerCommandSource source, Entity target, float multiplier) throws CommandSyntaxException {
+        private static int executeBase(CommandSourceStack source, Entity target, float multiplier) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
 
             double baseTemperature = ((LivingEntity) target).getAttributeValue(ThermiaAttributes.BASE_TEMPERATURE);
-            source.sendFeedback(
-                    () -> Text.translatable(
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.get.entity.success",
                             "Base",
                             target.getName(),
@@ -126,14 +126,14 @@ public class TemperatureCommand {
             return (int) ((baseTemperature * multiplier) * 1000);
         }
 
-        private static int executeCurrent(ServerCommandSource source, Entity target, float multiplier) throws CommandSyntaxException {
+        private static int executeCurrent(CommandSourceStack source, Entity target, float multiplier) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
 
             TemperatureManager temperatureManager = TemperatureHelper.getTemperatureManager(target);
-            source.sendFeedback(
-                    () -> Text.translatable(
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.get.entity.success",
                             "Current",
                             target.getName(),
@@ -147,14 +147,14 @@ public class TemperatureCommand {
             return (int) ((temperatureManager.getModifiedTemperature() * multiplier) * 1000);
         }
 
-        private static int executeTarget(ServerCommandSource source, Entity target, float multiplier) throws CommandSyntaxException {
+        private static int executeTarget(CommandSourceStack source, Entity target, float multiplier) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
 
             double targetTemperature = TemperatureHelper.getTemperatureManager(target).getTargetTemperature();
-            source.sendFeedback(
-                    () -> Text.translatable(
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.get.entity.success",
                             "Target",
                             target.getName(),
@@ -169,13 +169,13 @@ public class TemperatureCommand {
             return (int) ((targetTemperature * multiplier) * 1000);
         }
 
-        private static int executeUnmodified(ServerCommandSource source, Entity target, float multiplier) throws CommandSyntaxException {
+        private static int executeUnmodified(CommandSourceStack source, Entity target, float multiplier) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
             TemperatureManager temperatureManager = TemperatureHelper.getTemperatureManager(target);
-            source.sendFeedback(
-                    () -> Text.translatable(
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.get.entity.success",
                             "Unmodified",
                             target.getName(),
@@ -191,19 +191,19 @@ public class TemperatureCommand {
     }
 
     public static class SetTemperatureNode {
-        public static LiteralCommandNode<ServerCommandSource> get() {
-            return CommandManager.literal("set")
-                    .then(CommandManager.argument("amount", FloatArgumentType.floatArg())
-                            .executes(context -> execute(context.getSource(), EntityArgumentType.getEntity(context, "target"), FloatArgumentType.getFloat(context, "amount")))).build();
+        public static LiteralCommandNode<CommandSourceStack> get() {
+            return Commands.literal("set")
+                    .then(Commands.argument("amount", FloatArgumentType.floatArg())
+                            .executes(context -> execute(context.getSource(), EntityArgument.getEntity(context, "target"), FloatArgumentType.getFloat(context, "amount")))).build();
         }
 
-        private static int execute(ServerCommandSource source, Entity target, double value) throws CommandSyntaxException {
+        private static int execute(CommandSourceStack source, Entity target, double value) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
             TemperatureManager temperatureManager = TemperatureHelper.getTemperatureManager(target);
-            source.sendFeedback(
-                    () -> Text.translatable(
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.change.success",
                             target.getName(),
                             TemperatureHelper.TemperatureScaleDisplay.convertForClient(
@@ -222,20 +222,20 @@ public class TemperatureCommand {
     }
 
     public static class AddTemperatureNode {
-        public static LiteralCommandNode<ServerCommandSource> get() {
-            return CommandManager.literal("add")
-                    .then(CommandManager.argument("amount", FloatArgumentType.floatArg())
-                            .executes(context -> execute(context.getSource(), EntityArgumentType.getEntity(context, "target"), FloatArgumentType.getFloat(context, "amount")))).build();
+        public static LiteralCommandNode<CommandSourceStack> get() {
+            return Commands.literal("add")
+                    .then(Commands.argument("amount", FloatArgumentType.floatArg())
+                            .executes(context -> execute(context.getSource(), EntityArgument.getEntity(context, "target"), FloatArgumentType.getFloat(context, "amount")))).build();
         }
 
-        private static int execute(ServerCommandSource source, Entity target, double value) throws CommandSyntaxException {
+        private static int execute(CommandSourceStack source, Entity target, double value) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
             TemperatureManager temperatureManager = TemperatureHelper.getTemperatureManager(target);
             double newTemperature = temperatureManager.modifyTemperature(value);
-            source.sendFeedback(
-                    () -> Text.translatable(
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.change.success",
                             target.getName(),
                             TemperatureHelper.TemperatureScaleDisplay.convertForClient(
@@ -256,33 +256,33 @@ public class TemperatureCommand {
     }
 
     public static class ModifierTemperatureNode {
-        public static LiteralCommandNode<ServerCommandSource> get() {
-            return CommandManager.literal("modifier")
-                    .then(CommandManager.literal("add")
-                            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
-                                    .executes(context -> executeAdd(context.getSource(), EntityArgumentType.getEntity(context, "target"), IdentifierArgumentType.getIdentifier(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_VALUE))
-                                    .then(CommandManager.argument("amount", DoubleArgumentType.doubleArg())
-                                            .then(CommandManager.literal("add_value")
-                                                    .executes(context -> executeAdd(context.getSource(), EntityArgumentType.getEntity(context, "target"), IdentifierArgumentType.getIdentifier(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_VALUE)))
-                                            .then(CommandManager.literal("add_multiplied_value")
-                                                    .executes(context -> executeAdd(context.getSource(), EntityArgumentType.getEntity(context, "target"), IdentifierArgumentType.getIdentifier(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_MULTIPLIED_VALUE)))
-                                            .then(CommandManager.literal("set_total")
-                                                    .executes(context -> executeAdd(context.getSource(), EntityArgumentType.getEntity(context, "target"), IdentifierArgumentType.getIdentifier(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.SET_TOTAL))))))
-                    .then(CommandManager.literal("remove")
-                            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
-                                    .suggests((context, builder) -> CommandSource.suggestIdentifiers(streamModifiers(EntityArgumentType.getEntity(context, "target")), builder))
-                                    .executes(context -> executeRemove(context.getSource(), EntityArgumentType.getEntity(context, "target"), IdentifierArgumentType.getIdentifier(context, "id"))))
-                            .then(CommandManager.literal("*")
-                                    .executes(context -> executeRemoveAll(context.getSource(), EntityArgumentType.getEntity(context, "target")))))
-                    .then(CommandManager.literal("get")
-                            .then(CommandManager.argument("id", IdentifierArgumentType.identifier())
-                                    .suggests((context, builder) -> CommandSource.suggestIdentifiers(streamModifiers(EntityArgumentType.getEntity(context, "target")), builder))
-                                    .executes(context -> executeGet(context.getSource(), EntityArgumentType.getEntity(context, "target"), IdentifierArgumentType.getIdentifier(context, "id"), 1))
-                                    .then(CommandManager.argument("scale", FloatArgumentType.floatArg())
-                                            .executes(context -> executeGet(context.getSource(), EntityArgumentType.getEntity(context, "target"), IdentifierArgumentType.getIdentifier(context, "id"), FloatArgumentType.getFloat(context, "scale")))))).build();
+        public static LiteralCommandNode<CommandSourceStack> get() {
+            return Commands.literal("modifier")
+                    .then(Commands.literal("add")
+                            .then(Commands.argument("id", ResourceLocationArgument.id())
+                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_VALUE))
+                                    .then(Commands.argument("amount", DoubleArgumentType.doubleArg())
+                                            .then(Commands.literal("add_value")
+                                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_VALUE)))
+                                            .then(Commands.literal("add_multiplied_value")
+                                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.ADD_MULTIPLIED_VALUE)))
+                                            .then(Commands.literal("set_total")
+                                                    .executes(context -> executeAdd(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), DoubleArgumentType.getDouble(context, "amount"), TemperatureModifier.Operation.SET_TOTAL))))))
+                    .then(Commands.literal("remove")
+                            .then(Commands.argument("id", ResourceLocationArgument.id())
+                                    .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(streamModifiers(EntityArgument.getEntity(context, "target")), builder))
+                                    .executes(context -> executeRemove(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"))))
+                            .then(Commands.literal("*")
+                                    .executes(context -> executeRemoveAll(context.getSource(), EntityArgument.getEntity(context, "target")))))
+                    .then(Commands.literal("get")
+                            .then(Commands.argument("id", ResourceLocationArgument.id())
+                                    .suggests((context, builder) -> SharedSuggestionProvider.suggestResource(streamModifiers(EntityArgument.getEntity(context, "target")), builder))
+                                    .executes(context -> executeGet(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), 1))
+                                    .then(Commands.argument("scale", FloatArgumentType.floatArg())
+                                            .executes(context -> executeGet(context.getSource(), EntityArgument.getEntity(context, "target"), ResourceLocationArgument.getId(context, "id"), FloatArgumentType.getFloat(context, "scale")))))).build();
         }
 
-        private static int executeRemoveAll(ServerCommandSource source, Entity target) throws CommandSyntaxException {
+        private static int executeRemoveAll(CommandSourceStack source, Entity target) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
@@ -295,7 +295,7 @@ public class TemperatureCommand {
 
             int modifierCount = 0;
 
-            for (Identifier id : temperatureModifiers.getList().stream().map(TemperatureModifier::id).toList()) {
+            for (ResourceLocation id : temperatureModifiers.getList().stream().map(TemperatureModifier::id).toList()) {
                 if (TemperatureModifier.isGranted(id)) {
                     continue;
                 }
@@ -305,8 +305,8 @@ public class TemperatureCommand {
             }
 
             int displayedModifierCount = modifierCount;
-            source.sendFeedback(
-                    () -> Text.stringifiedTranslatable(
+            source.sendSuccess(
+                    () -> Component.translatableEscape(
                             "commands.temperature.modifier.remove_all.success",
                             displayedModifierCount,
                             target.getName()
@@ -317,7 +317,7 @@ public class TemperatureCommand {
             return displayedModifierCount;
         }
 
-        private static int executeRemove(ServerCommandSource source, Entity target, Identifier id) throws CommandSyntaxException {
+        private static int executeRemove(CommandSourceStack source, Entity target, ResourceLocation id) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
@@ -329,8 +329,8 @@ public class TemperatureCommand {
 
             temperatureModifiers.removeModifier(id);
 
-            source.sendFeedback(
-                    () -> Text.stringifiedTranslatable(
+            source.sendSuccess(
+                    () -> Component.translatableEscape(
                             "commands.temperature.modifier.remove.success",
                             id.toString(),
                             target.getName()
@@ -341,7 +341,7 @@ public class TemperatureCommand {
             return 1;
         }
 
-        private static Stream<Identifier> streamModifiers(Entity target) throws CommandSyntaxException {
+        private static Stream<ResourceLocation> streamModifiers(Entity target) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
@@ -352,7 +352,7 @@ public class TemperatureCommand {
         }
 
 
-        private static int executeGet(ServerCommandSource source, Entity target, Identifier id, double scale) throws CommandSyntaxException {
+        private static int executeGet(CommandSourceStack source, Entity target, ResourceLocation id, double scale) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
@@ -364,8 +364,8 @@ public class TemperatureCommand {
 
             TemperatureModifier modifier = temperatureModifiers.getModifier(id);
 
-            source.sendFeedback(
-                    () -> Text.stringifiedTranslatable(
+            source.sendSuccess(
+                    () -> Component.translatableEscape(
                             "commands.temperature.modifier.get.success." + modifier.operation().ordinal(),
                             id.toString(),
                             target.getName(),
@@ -382,7 +382,7 @@ public class TemperatureCommand {
             return (int) ((modifier.amount() * scale) * 1000);
         }
 
-        private static int executeAdd(ServerCommandSource source, Entity target, Identifier id, double value, TemperatureModifier.Operation operation) throws CommandSyntaxException {
+        private static int executeAdd(CommandSourceStack source, Entity target, ResourceLocation id, double value, TemperatureModifier.Operation operation) throws CommandSyntaxException {
             if (TemperatureHelper.lacksTemperature(target)) {
                 throw ENTITY_FAILED_EXCEPTION.create(target.getName());
             }
@@ -394,8 +394,8 @@ public class TemperatureCommand {
 
             temperatureModifiers.addModifier(new TemperatureModifier(id, value, operation));
 
-            source.sendFeedback(
-                    () -> Text.stringifiedTranslatable(
+            source.sendSuccess(
+                    () -> Component.translatableEscape(
                             "commands.temperature.modifier.add.success",
                             id.toString(),
                             target.getName()
@@ -408,31 +408,31 @@ public class TemperatureCommand {
     }
 
     public static class GetPositionTemperatureNode {
-        public static LiteralCommandNode<ServerCommandSource> get() {
-            var node = CommandManager.literal("get")
-                    .executes(context -> executeAmbient(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position"), 1.0F))
-                    .then(CommandManager.literal("ambient")
-                            .executes(context -> executeAmbient(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position"), 1))
-                            .then(CommandManager.argument("scale", FloatArgumentType.floatArg())
-                                    .executes(context -> executeAmbient(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position"), FloatArgumentType.getFloat(context, "scale")))))
-                    .then(CommandManager.literal("block")
-                            .executes(context -> executeBlock(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position"), 1))
-                            .then(CommandManager.argument("scale", FloatArgumentType.floatArg())
-                                    .executes(context -> executeBlock(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position"), FloatArgumentType.getFloat(context, "scale")))))
-                    .then(CommandManager.literal("fluid")
-                            .executes(context -> executeFluid(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position"), 1))
-                            .then(CommandManager.argument("scale", FloatArgumentType.floatArg())
-                                    .executes(context -> executeFluid(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position"), FloatArgumentType.getFloat(context, "scale")))))
-                    .then(CommandManager.literal("regional")
-                            .executes(context -> executeRegional(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position"), 1))
-                            .then(CommandManager.argument("scale", FloatArgumentType.floatArg())
-                                    .executes(context -> executeRegional(context.getSource(), BlockPosArgumentType.getBlockPos(context, "position"), FloatArgumentType.getFloat(context, "scale"))))).build();
+        public static LiteralCommandNode<CommandSourceStack> get() {
+            var node = Commands.literal("get")
+                    .executes(context -> executeAmbient(context.getSource(), BlockPosArgument.getBlockPos(context, "position"), 1.0F))
+                    .then(Commands.literal("ambient")
+                            .executes(context -> executeAmbient(context.getSource(), BlockPosArgument.getBlockPos(context, "position"), 1))
+                            .then(Commands.argument("scale", FloatArgumentType.floatArg())
+                                    .executes(context -> executeAmbient(context.getSource(), BlockPosArgument.getBlockPos(context, "position"), FloatArgumentType.getFloat(context, "scale")))))
+                    .then(Commands.literal("block")
+                            .executes(context -> executeBlock(context.getSource(), BlockPosArgument.getBlockPos(context, "position"), 1))
+                            .then(Commands.argument("scale", FloatArgumentType.floatArg())
+                                    .executes(context -> executeBlock(context.getSource(), BlockPosArgument.getBlockPos(context, "position"), FloatArgumentType.getFloat(context, "scale")))))
+                    .then(Commands.literal("fluid")
+                            .executes(context -> executeFluid(context.getSource(), BlockPosArgument.getBlockPos(context, "position"), 1))
+                            .then(Commands.argument("scale", FloatArgumentType.floatArg())
+                                    .executes(context -> executeFluid(context.getSource(), BlockPosArgument.getBlockPos(context, "position"), FloatArgumentType.getFloat(context, "scale")))))
+                    .then(Commands.literal("regional")
+                            .executes(context -> executeRegional(context.getSource(), BlockPosArgument.getBlockPos(context, "position"), 1))
+                            .then(Commands.argument("scale", FloatArgumentType.floatArg())
+                                    .executes(context -> executeRegional(context.getSource(), BlockPosArgument.getBlockPos(context, "position"), FloatArgumentType.getFloat(context, "scale"))))).build();
 
             if (FabricLoader.getInstance().isModLoaded("sereneseasons")) {
                 node.addChild(
-                        CommandManager.literal("seasonal")
+                        Commands.literal("seasonal")
                                 .executes(context -> executeSeasonal(context.getSource(), 1))
-                                .then(CommandManager.argument("scale", FloatArgumentType.floatArg())
+                                .then(Commands.argument("scale", FloatArgumentType.floatArg())
                                         .executes(context -> executeSeasonal(context.getSource(), FloatArgumentType.getFloat(context, "scale")))).build()
                 );
             }
@@ -440,15 +440,15 @@ public class TemperatureCommand {
             return node;
         }
 
-        private static int executeRegional(ServerCommandSource source, BlockPos blockPos, float multiplier) throws CommandSyntaxException {
-            if (!World.isValid(blockPos) || source.getWorld().isInBuildLimit(blockPos))
+        private static int executeRegional(CommandSourceStack source, BlockPos blockPos, float multiplier) throws CommandSyntaxException {
+            if (!Level.isInSpawnableBounds(blockPos) || source.getLevel().isInWorldBounds(blockPos))
                 throw INVALID_POSITION_EXCEPTION.create(blockPos.toShortString());
-            if (!source.getWorld().isPosLoaded(blockPos))
+            if (!source.getLevel().isLoaded(blockPos))
                 throw UNLOADED_POSITION_EXCEPTION.create(blockPos.toShortString());
 
-            double regionalTemperature = TemperatureHelper.getRegionalTemperature(source.getWorld(), blockPos);
-            source.sendFeedback(
-                    () -> Text.translatable(
+            double regionalTemperature = TemperatureHelper.getRegionalTemperature(source.getLevel(), blockPos);
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.get.position.success",
                             "Regional",
                             blockPos.toShortString(),
@@ -463,15 +463,15 @@ public class TemperatureCommand {
             return (int) ((regionalTemperature * multiplier) * 1000);
         }
 
-        private static int executeAmbient(ServerCommandSource source, BlockPos blockPos, float multiplier) throws CommandSyntaxException {
-            if (!World.isValid(blockPos) || source.getWorld().isInBuildLimit(blockPos))
+        private static int executeAmbient(CommandSourceStack source, BlockPos blockPos, float multiplier) throws CommandSyntaxException {
+            if (!Level.isInSpawnableBounds(blockPos) || source.getLevel().isInWorldBounds(blockPos))
                 throw INVALID_POSITION_EXCEPTION.create(blockPos.toShortString());
-            if (!source.getWorld().isPosLoaded(blockPos))
+            if (!source.getLevel().isLoaded(blockPos))
                 throw UNLOADED_POSITION_EXCEPTION.create(blockPos.toShortString());
 
-            double ambientTemperature = TemperatureHelper.getAmbientTemperature(source.getWorld(), blockPos);
-            source.sendFeedback(
-                    () -> Text.translatable(
+            double ambientTemperature = TemperatureHelper.getAmbientTemperature(source.getLevel(), blockPos);
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.get.position.success",
                             "Ambient",
                             blockPos.toShortString(),
@@ -486,15 +486,15 @@ public class TemperatureCommand {
             return (int) ((ambientTemperature * multiplier) * 1000);
         }
 
-        private static int executeBlock(ServerCommandSource source, BlockPos blockPos, float multiplier) throws CommandSyntaxException {
-            if (!World.isValid(blockPos) || source.getWorld().isInBuildLimit(blockPos))
+        private static int executeBlock(CommandSourceStack source, BlockPos blockPos, float multiplier) throws CommandSyntaxException {
+            if (!Level.isInSpawnableBounds(blockPos) || source.getLevel().isInWorldBounds(blockPos))
                 throw INVALID_POSITION_EXCEPTION.create(blockPos.toShortString());
-            if (!source.getWorld().isPosLoaded(blockPos))
+            if (!source.getLevel().isLoaded(blockPos))
                 throw UNLOADED_POSITION_EXCEPTION.create(blockPos.toShortString());
 
-            double blockTemperature = TemperatureHelper.getBlockTemperature(source.getWorld(), blockPos);
-            source.sendFeedback(
-                    () -> Text.translatable(
+            double blockTemperature = TemperatureHelper.getBlockTemperature(source.getLevel(), blockPos);
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.get.position.success",
                             "Block",
                             blockPos.toShortString(),
@@ -509,15 +509,15 @@ public class TemperatureCommand {
             return (int) ((blockTemperature * multiplier) * 1000);
         }
 
-        private static int executeFluid(ServerCommandSource source, BlockPos blockPos, float multiplier) throws CommandSyntaxException {
-            if (!World.isValid(blockPos) || source.getWorld().isInBuildLimit(blockPos))
+        private static int executeFluid(CommandSourceStack source, BlockPos blockPos, float multiplier) throws CommandSyntaxException {
+            if (!Level.isInSpawnableBounds(blockPos) || source.getLevel().isInWorldBounds(blockPos))
                 throw INVALID_POSITION_EXCEPTION.create(blockPos.toShortString());
-            if (!source.getWorld().isPosLoaded(blockPos))
+            if (!source.getLevel().isLoaded(blockPos))
                 throw UNLOADED_POSITION_EXCEPTION.create(blockPos.toShortString());
 
-            double fluidTemperature = TemperatureHelper.getFluidTemperature(source.getWorld(), blockPos);
-            source.sendFeedback(
-                    () -> Text.translatable(
+            double fluidTemperature = TemperatureHelper.getFluidTemperature(source.getLevel(), blockPos);
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.get.position.success",
                             "Fluid",
                             blockPos.toShortString(),
@@ -533,17 +533,17 @@ public class TemperatureCommand {
         }
 
 
-        private static int executeSeasonal(ServerCommandSource source, float multiplier) throws CommandSyntaxException {
-            World world = source.getWorld();
+        private static int executeSeasonal(CommandSourceStack source, float multiplier) throws CommandSyntaxException {
+            Level world = source.getLevel();
             ServiceLoader<SereneSeasonsCompatBase> loader = ServiceLoader.load(SereneSeasonsCompatBase.class);
             if (loader.findFirst().isEmpty()) {
                 throw ODD_EXCEPTION.create(0);
             }
             var season = loader.findFirst().get().getSeasonState(world).getSubSeason();
 
-            double seasonTemperature = TemperatureHelper.getSeasonalTemperature(source.getWorld());
-            source.sendFeedback(
-                    () -> Text.translatable(
+            double seasonTemperature = TemperatureHelper.getSeasonalTemperature(source.getLevel());
+            source.sendSuccess(
+                    () -> Component.translatable(
                             "commands.temperature.get.season.success",
                             season.getSeason().name().toLowerCase(),
                             TemperatureHelper.TemperatureScaleDisplay.convertForClient(

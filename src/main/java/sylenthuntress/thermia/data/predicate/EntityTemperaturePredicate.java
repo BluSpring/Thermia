@@ -3,26 +3,26 @@ package sylenthuntress.thermia.data.predicate;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.entity.Entity;
-import net.minecraft.predicate.NumberRange;
-import net.minecraft.predicate.entity.EntitySubPredicate;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.advancements.critereon.EntitySubPredicate;
 import sylenthuntress.thermia.temperature.TemperatureHelper;
 
 public record EntityTemperaturePredicate(
-        NumberRange.DoubleRange baseTemperature,
-        NumberRange.DoubleRange currentTemperature,
-        NumberRange.DoubleRange targetTemperature,
-        NumberRange.DoubleRange unmodifiedTemperature
+    MinMaxBounds.Doubles baseTemperature,
+    MinMaxBounds.Doubles currentTemperature,
+    MinMaxBounds.Doubles targetTemperature,
+    MinMaxBounds.Doubles unmodifiedTemperature
 ) {
     public static final Codec<EntityTemperaturePredicate> CODEC = RecordCodecBuilder.create(
             instance -> instance.group(
-                            NumberRange.DoubleRange.CODEC.optionalFieldOf("base_temperature", NumberRange.DoubleRange.ANY)
+                            MinMaxBounds.Doubles.CODEC.optionalFieldOf("base_temperature", MinMaxBounds.Doubles.ANY)
                                     .forGetter(EntityTemperaturePredicate::baseTemperature),
-                            NumberRange.DoubleRange.CODEC.optionalFieldOf("current_temperature", NumberRange.DoubleRange.ANY)
+                            MinMaxBounds.Doubles.CODEC.optionalFieldOf("current_temperature", MinMaxBounds.Doubles.ANY)
                                     .forGetter(EntityTemperaturePredicate::currentTemperature),
-                            NumberRange.DoubleRange.CODEC.optionalFieldOf("target_temperature", NumberRange.DoubleRange.ANY)
+                            MinMaxBounds.Doubles.CODEC.optionalFieldOf("target_temperature", MinMaxBounds.Doubles.ANY)
                                     .forGetter(EntityTemperaturePredicate::targetTemperature),
-                            NumberRange.DoubleRange.CODEC.optionalFieldOf("unmodified_temperature", NumberRange.DoubleRange.ANY)
+                            MinMaxBounds.Doubles.CODEC.optionalFieldOf("unmodified_temperature", MinMaxBounds.Doubles.ANY)
                                     .forGetter(EntityTemperaturePredicate::unmodifiedTemperature)
                     )
                     .apply(instance, EntityTemperaturePredicate::new)
@@ -39,42 +39,42 @@ public record EntityTemperaturePredicate(
 
         final var temperatureManager = TemperatureHelper.getTemperatureManager(entity);
 
-        if (!baseTemperature.test(temperatureManager.getBaseTemperature())) {
+        if (!baseTemperature.matches(temperatureManager.getBaseTemperature())) {
             return false;
-        } else if (!currentTemperature.test(temperatureManager.getModifiedTemperature())) {
+        } else if (!currentTemperature.matches(temperatureManager.getModifiedTemperature())) {
             return false;
-        } else if (!targetTemperature.test(temperatureManager.getTargetTemperature())) {
+        } else if (!targetTemperature.matches(temperatureManager.getTargetTemperature())) {
             return false;
-        } else return unmodifiedTemperature.test(temperatureManager.getTemperature());
+        } else return unmodifiedTemperature.matches(temperatureManager.getTemperature());
     }
 
     @SuppressWarnings("unused")
     public static class Builder {
-        private NumberRange.DoubleRange baseTemperature;
-        private NumberRange.DoubleRange currentTemperature;
-        private NumberRange.DoubleRange targetTemperature;
-        private NumberRange.DoubleRange unmodifiedTemperature;
+        private MinMaxBounds.Doubles baseTemperature;
+        private MinMaxBounds.Doubles currentTemperature;
+        private MinMaxBounds.Doubles targetTemperature;
+        private MinMaxBounds.Doubles unmodifiedTemperature;
 
         public static EntityTemperaturePredicate.Builder create() {
             return new EntityTemperaturePredicate.Builder();
         }
 
-        public EntityTemperaturePredicate.Builder setBaseTemperature(NumberRange.DoubleRange baseTemperature) {
+        public EntityTemperaturePredicate.Builder setBaseTemperature(MinMaxBounds.Doubles baseTemperature) {
             this.baseTemperature = baseTemperature;
             return this;
         }
 
-        public EntityTemperaturePredicate.Builder setCurrentTemperature(NumberRange.DoubleRange currentTemperature) {
+        public EntityTemperaturePredicate.Builder setCurrentTemperature(MinMaxBounds.Doubles currentTemperature) {
             this.currentTemperature = currentTemperature;
             return this;
         }
 
-        public EntityTemperaturePredicate.Builder setTargetTemperature(NumberRange.DoubleRange targetTemperature) {
+        public EntityTemperaturePredicate.Builder setTargetTemperature(MinMaxBounds.Doubles targetTemperature) {
             this.targetTemperature = targetTemperature;
             return this;
         }
 
-        public EntityTemperaturePredicate.Builder setUnmodifiedTemperature(NumberRange.DoubleRange unmodifiedTemperature) {
+        public EntityTemperaturePredicate.Builder setUnmodifiedTemperature(MinMaxBounds.Doubles unmodifiedTemperature) {
             this.unmodifiedTemperature = unmodifiedTemperature;
             return this;
         }

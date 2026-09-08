@@ -3,30 +3,30 @@ package sylenthuntress.thermia.data.predicate;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.predicate.NumberRange;
-import net.minecraft.predicate.entity.EntitySubPredicate;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.advancements.critereon.MinMaxBounds;
+import net.minecraft.advancements.critereon.EntitySubPredicate;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import sylenthuntress.thermia.temperature.TemperatureHelper;
 
 public record LocationTemperaturePredicate(
-        NumberRange.DoubleRange ambientTemperature,
-        NumberRange.DoubleRange blockTemperature,
-        NumberRange.DoubleRange fluidTemperature,
-        NumberRange.DoubleRange regionalTemperature,
-        NumberRange.DoubleRange seasonalTemperature
+    MinMaxBounds.Doubles ambientTemperature,
+    MinMaxBounds.Doubles blockTemperature,
+    MinMaxBounds.Doubles fluidTemperature,
+    MinMaxBounds.Doubles regionalTemperature,
+    MinMaxBounds.Doubles seasonalTemperature
 ) {
     public static final Codec<LocationTemperaturePredicate> CODEC = RecordCodecBuilder.create(
             instance -> instance.group(
-                            NumberRange.DoubleRange.CODEC.optionalFieldOf("ambient_temperature", NumberRange.DoubleRange.ANY)
+                            MinMaxBounds.Doubles.CODEC.optionalFieldOf("ambient_temperature", MinMaxBounds.Doubles.ANY)
                                     .forGetter(LocationTemperaturePredicate::ambientTemperature),
-                            NumberRange.DoubleRange.CODEC.optionalFieldOf("block_temperature", NumberRange.DoubleRange.ANY)
+                            MinMaxBounds.Doubles.CODEC.optionalFieldOf("block_temperature", MinMaxBounds.Doubles.ANY)
                                     .forGetter(LocationTemperaturePredicate::blockTemperature),
-                            NumberRange.DoubleRange.CODEC.optionalFieldOf("fluid_temperature", NumberRange.DoubleRange.ANY)
+                            MinMaxBounds.Doubles.CODEC.optionalFieldOf("fluid_temperature", MinMaxBounds.Doubles.ANY)
                                     .forGetter(LocationTemperaturePredicate::fluidTemperature),
-                            NumberRange.DoubleRange.CODEC.optionalFieldOf("regional_temperature", NumberRange.DoubleRange.ANY)
+                            MinMaxBounds.Doubles.CODEC.optionalFieldOf("regional_temperature", MinMaxBounds.Doubles.ANY)
                                     .forGetter(LocationTemperaturePredicate::regionalTemperature),
-                            NumberRange.DoubleRange.CODEC.optionalFieldOf("seasonal_temperature", NumberRange.DoubleRange.ANY)
+                            MinMaxBounds.Doubles.CODEC.optionalFieldOf("seasonal_temperature", MinMaxBounds.Doubles.ANY)
                                     .forGetter(LocationTemperaturePredicate::seasonalTemperature)
                     )
                     .apply(instance, LocationTemperaturePredicate::new)
@@ -36,51 +36,51 @@ public record LocationTemperaturePredicate(
         return null;
     }
 
-    public boolean test(World world, BlockPos pos) {
-        if (!ambientTemperature().test(TemperatureHelper.getAmbientTemperature(world, pos))) {
+    public boolean test(Level world, BlockPos pos) {
+        if (!ambientTemperature().matches(TemperatureHelper.getAmbientTemperature(world, pos))) {
             return false;
-        } else if (!blockTemperature().test(TemperatureHelper.getBlockTemperature(world, pos))) {
+        } else if (!blockTemperature().matches(TemperatureHelper.getBlockTemperature(world, pos))) {
             return false;
-        } else if (!fluidTemperature().test(TemperatureHelper.getFluidTemperature(world, pos))) {
+        } else if (!fluidTemperature().matches(TemperatureHelper.getFluidTemperature(world, pos))) {
             return false;
-        } else if (!regionalTemperature().test(TemperatureHelper.getRegionalTemperature(world, pos))) {
+        } else if (!regionalTemperature().matches(TemperatureHelper.getRegionalTemperature(world, pos))) {
             return false;
-        } else return seasonalTemperature().test(TemperatureHelper.getSeasonalTemperature(world));
+        } else return seasonalTemperature().matches(TemperatureHelper.getSeasonalTemperature(world));
     }
 
     @SuppressWarnings("unused")
     public static class Builder {
-        private NumberRange.DoubleRange ambientTemperature;
-        private NumberRange.DoubleRange blockTemperature;
-        private NumberRange.DoubleRange fluidTemperature;
-        private NumberRange.DoubleRange regionalTemperature;
-        private NumberRange.DoubleRange seasonalTemperature;
+        private MinMaxBounds.Doubles ambientTemperature;
+        private MinMaxBounds.Doubles blockTemperature;
+        private MinMaxBounds.Doubles fluidTemperature;
+        private MinMaxBounds.Doubles regionalTemperature;
+        private MinMaxBounds.Doubles seasonalTemperature;
 
         public static LocationTemperaturePredicate.Builder create() {
             return new LocationTemperaturePredicate.Builder();
         }
 
-        public LocationTemperaturePredicate.Builder setAmbientTemperature(NumberRange.DoubleRange ambientTemperature) {
+        public LocationTemperaturePredicate.Builder setAmbientTemperature(MinMaxBounds.Doubles ambientTemperature) {
             this.ambientTemperature = ambientTemperature;
             return this;
         }
 
-        public LocationTemperaturePredicate.Builder setBlockTemperature(NumberRange.DoubleRange blockTemperature) {
+        public LocationTemperaturePredicate.Builder setBlockTemperature(MinMaxBounds.Doubles blockTemperature) {
             this.blockTemperature = blockTemperature;
             return this;
         }
 
-        public LocationTemperaturePredicate.Builder setFluidTemperature(NumberRange.DoubleRange fluidTemperature) {
+        public LocationTemperaturePredicate.Builder setFluidTemperature(MinMaxBounds.Doubles fluidTemperature) {
             this.fluidTemperature = fluidTemperature;
             return this;
         }
 
-        public LocationTemperaturePredicate.Builder setRegionalTemperature(NumberRange.DoubleRange regionalTemperature) {
+        public LocationTemperaturePredicate.Builder setRegionalTemperature(MinMaxBounds.Doubles regionalTemperature) {
             this.regionalTemperature = regionalTemperature;
             return this;
         }
 
-        public LocationTemperaturePredicate.Builder setSeasonalTemperature(NumberRange.DoubleRange seasonalTemperature) {
+        public LocationTemperaturePredicate.Builder setSeasonalTemperature(MinMaxBounds.Doubles seasonalTemperature) {
             this.seasonalTemperature = seasonalTemperature;
             return this;
         }

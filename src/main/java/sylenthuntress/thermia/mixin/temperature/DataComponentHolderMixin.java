@@ -1,15 +1,15 @@
 package sylenthuntress.thermia.mixin.temperature;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.component.ComponentHolder;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.AttributeModifierSlot;
-import net.minecraft.component.type.AttributeModifiersComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.core.component.DataComponentHolder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.Holder;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -19,8 +19,8 @@ import sylenthuntress.thermia.registry.ThermiaAttributes;
 import sylenthuntress.thermia.registry.ThermiaComponents;
 import sylenthuntress.thermia.registry.data_component.SunBlockingComponent;
 
-@Mixin(ComponentHolder.class)
-public interface ComponentHolderMixin {
+@Mixin(DataComponentHolder.class)
+public interface DataComponentHolderMixin {
     @ModifyReturnValue(
             method = "getOrDefault",
             at = @At("RETURN")
@@ -40,79 +40,79 @@ public interface ComponentHolderMixin {
     @Unique
     default Object thermia$calculateDefaultModifiers(Object obj) {
         //noinspection ConstantValue
-        if (!((ComponentHolder) this instanceof ItemStack stack)
-                || !(obj instanceof AttributeModifiersComponent component)) {
+        if (!((DataComponentHolder) this instanceof ItemStack stack)
+                || !(obj instanceof ItemAttributeModifiers component)) {
             return obj;
         }
 
         // Apply default equippable attributes
-        if (stack.contains(DataComponentTypes.EQUIPPABLE)) {
-            if (stack.isIn(ThermiaTags.Item.Equippable.INSULATING)) {
+        if (stack.has(DataComponents.EQUIPPABLE)) {
+            if (stack.is(ThermiaTags.Item.Equippable.INSULATING)) {
                 final EquipmentSlot itemSlot = stack.get(
-                        DataComponentTypes.EQUIPPABLE
+                        DataComponents.EQUIPPABLE
                 ).slot();
 
-                component = component.with(
+                component = component.withModifierAdded(
                         ThermiaAttributes.COLD_OFFSET_THRESHOLD,
-                        new EntityAttributeModifier(
+                        new AttributeModifier(
                                 Thermia.modIdentifier("cold_offset_modifier."
                                         + "."
-                                        + itemSlot.asString()
+                                        + itemSlot.getSerializedName()
                                 ),
                                 2,
-                                EntityAttributeModifier.Operation.ADD_VALUE
+                                AttributeModifier.Operation.ADD_VALUE
                         ),
-                        AttributeModifierSlot.forEquipmentSlot(
+                        EquipmentSlotGroup.bySlot(
                                 itemSlot
                         )
                 );
 
-                component = component.with(
+                component = component.withModifierAdded(
                         ThermiaAttributes.HEAT_OFFSET_THRESHOLD,
-                        new EntityAttributeModifier(
+                        new AttributeModifier(
                                 Thermia.modIdentifier("heat_offset_modifier."
                                         + "."
-                                        + itemSlot.asString()
+                                        + itemSlot.getSerializedName()
                                 ),
                                 -0.2,
-                                EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE
+                                AttributeModifier.Operation.ADD_MULTIPLIED_BASE
                         ),
-                        AttributeModifierSlot.forEquipmentSlot(
+                        EquipmentSlotGroup.bySlot(
                                 itemSlot
                         )
                 );
             }
-            if (stack.isIn(ThermiaTags.Item.Equippable.BREEZY)) {
+            if (stack.is(ThermiaTags.Item.Equippable.BREEZY)) {
                 final EquipmentSlot itemSlot = stack.get(
-                        DataComponentTypes.EQUIPPABLE
+                        DataComponents.EQUIPPABLE
                 ).slot();
 
-                component = component.with(
+                component = component.withModifierAdded(
                         ThermiaAttributes.HEAT_OFFSET_THRESHOLD,
-                        new EntityAttributeModifier(
+                        new AttributeModifier(
                                 Thermia.modIdentifier("heat_offset_modifier."
                                         + "."
-                                        + itemSlot.asString()
+                                        + itemSlot.getSerializedName()
                                 ),
                                 2,
-                                EntityAttributeModifier.Operation.ADD_VALUE
+                                AttributeModifier.Operation.ADD_VALUE
                         ),
-                        AttributeModifierSlot.forEquipmentSlot(
+                        EquipmentSlotGroup.bySlot(
                                 itemSlot
                         )
                 );
 
-                component = component.with(
+                component = component.withModifierAdded(
                         ThermiaAttributes.COLD_OFFSET_THRESHOLD,
-                        new EntityAttributeModifier(
+                        new AttributeModifier(
                                 Thermia.modIdentifier("cold_offset_modifier."
                                         + "."
-                                        + itemSlot.asString()
+                                        + itemSlot.getSerializedName()
                                 ),
                                 -0.2,
-                                EntityAttributeModifier.Operation.ADD_MULTIPLIED_BASE
+                                AttributeModifier.Operation.ADD_MULTIPLIED_BASE
                         ),
-                        AttributeModifierSlot.forEquipmentSlot(
+                        EquipmentSlotGroup.bySlot(
                                 itemSlot
                         )
                 );
@@ -120,120 +120,120 @@ public interface ComponentHolderMixin {
         }
 
         // Apply default sun blocking attributes
-        if (!stack.contains(ThermiaComponents.SUN_BLOCKING)
-                && stack.isIn(ThermiaTags.Item.Equippable.BLOCKS_SUNLIGHT)) {
-            if (stack.isIn(ThermiaTags.Item.Equippable.BlocksSunlight.ANY)) {
+        if (!stack.has(ThermiaComponents.SUN_BLOCKING)
+                && stack.is(ThermiaTags.Item.Equippable.BLOCKS_SUNLIGHT)) {
+            if (stack.is(ThermiaTags.Item.Equippable.BlocksSunlight.ANY)) {
                 stack.set(
                         ThermiaComponents.SUN_BLOCKING,
                         new SunBlockingComponent(
                                 1,
-                                AttributeModifierSlot.ANY
+                                EquipmentSlotGroup.ANY
                         )
                 );
             }
-            if (stack.isIn(ThermiaTags.Item.Equippable.BlocksSunlight.BODY)) {
+            if (stack.is(ThermiaTags.Item.Equippable.BlocksSunlight.BODY)) {
                 stack.set(
                         ThermiaComponents.SUN_BLOCKING,
                         new SunBlockingComponent(
                                 1,
-                                AttributeModifierSlot.BODY
+                                EquipmentSlotGroup.BODY
                         )
                 );
             }
-            if (stack.isIn(ThermiaTags.Item.Equippable.BlocksSunlight.FEET)) {
+            if (stack.is(ThermiaTags.Item.Equippable.BlocksSunlight.FEET)) {
                 stack.set(
                         ThermiaComponents.SUN_BLOCKING,
                         new SunBlockingComponent(
                                 1,
-                                AttributeModifierSlot.FEET
+                                EquipmentSlotGroup.FEET
                         )
                 );
             }
-            if (stack.isIn(ThermiaTags.Item.Equippable.BlocksSunlight.HANDS)) {
+            if (stack.is(ThermiaTags.Item.Equippable.BlocksSunlight.HANDS)) {
                 stack.set(
                         ThermiaComponents.SUN_BLOCKING,
                         new SunBlockingComponent(
                                 1,
-                                AttributeModifierSlot.HAND
+                                EquipmentSlotGroup.HAND
                         )
                 );
             }
-            if (stack.isIn(ThermiaTags.Item.Equippable.BlocksSunlight.HEAD)) {
+            if (stack.is(ThermiaTags.Item.Equippable.BlocksSunlight.HEAD)) {
                 stack.set(
                         ThermiaComponents.SUN_BLOCKING,
                         new SunBlockingComponent(
                                 1,
-                                AttributeModifierSlot.HEAD
+                                EquipmentSlotGroup.HEAD
                         )
                 );
             }
-            if (stack.isIn(ThermiaTags.Item.Equippable.BlocksSunlight.LEGS)) {
+            if (stack.is(ThermiaTags.Item.Equippable.BlocksSunlight.LEGS)) {
                 stack.set(
                         ThermiaComponents.SUN_BLOCKING,
                         new SunBlockingComponent(
                                 1,
-                                AttributeModifierSlot.LEGS
+                                EquipmentSlotGroup.LEGS
                         )
                 );
             }
-            if (stack.isIn(ThermiaTags.Item.Equippable.BlocksSunlight.MAINHAND)) {
+            if (stack.is(ThermiaTags.Item.Equippable.BlocksSunlight.MAINHAND)) {
                 stack.set(
                         ThermiaComponents.SUN_BLOCKING,
                         new SunBlockingComponent(
                                 1,
-                                AttributeModifierSlot.MAINHAND
+                                EquipmentSlotGroup.MAINHAND
                         )
                 );
             }
-            if (stack.isIn(ThermiaTags.Item.Equippable.BlocksSunlight.OFFHAND)) {
+            if (stack.is(ThermiaTags.Item.Equippable.BlocksSunlight.OFFHAND)) {
                 stack.set(
                         ThermiaComponents.SUN_BLOCKING,
                         new SunBlockingComponent(
                                 1,
-                                AttributeModifierSlot.OFFHAND
+                                EquipmentSlotGroup.OFFHAND
                         )
                 );
             }
         }
 
         // Guard-return for unenchanted items
-        if (!stack.hasEnchantments()) {
+        if (!stack.isEnchanted()) {
             return component;
         }
 
         // Apply default enchantment attribute modifiers
         final var enchantments = stack.getEnchantments();
-        for (RegistryEntry<Enchantment> enchantment : enchantments.getEnchantments()) {
-            for (AttributeModifierSlot slot : enchantment.value().definition().slots()) {
-                if (enchantment.isIn(ThermiaTags.Enchantment.HYPERTHERMIA_PROTECTION)) {
-                    component = component.with(
+        for (Holder<Enchantment> enchantment : enchantments.keySet()) {
+            for (EquipmentSlotGroup slot : enchantment.value().definition().slots()) {
+                if (enchantment.is(ThermiaTags.Enchantment.HYPERTHERMIA_PROTECTION)) {
+                    component = component.withModifierAdded(
                             ThermiaAttributes.HEAT_OFFSET_THRESHOLD,
-                            new EntityAttributeModifier(
+                            new AttributeModifier(
                                     Thermia.modIdentifier(
                                             "enchantment."
-                                                    + enchantment.getIdAsString()
+                                                    + enchantment.getRegisteredName()
                                                     .replaceFirst("[A-Za-z0-9]+:", "")
                                                     + ".heat_offset_threshold"
                                     ),
                                     2 + 0.25 * enchantments.getLevel(enchantment),
-                                    EntityAttributeModifier.Operation.ADD_VALUE
+                                    AttributeModifier.Operation.ADD_VALUE
                             ),
                             slot
                     );
                 }
 
-                if (enchantment.isIn(ThermiaTags.Enchantment.HYPOTHERMIA_PROTECTION)) {
-                    component = component.with(
+                if (enchantment.is(ThermiaTags.Enchantment.HYPOTHERMIA_PROTECTION)) {
+                    component = component.withModifierAdded(
                             ThermiaAttributes.COLD_OFFSET_THRESHOLD,
-                            new EntityAttributeModifier(
+                            new AttributeModifier(
                                     Thermia.modIdentifier(
                                             "enchantment."
-                                                    + enchantment.getIdAsString()
+                                                    + enchantment.getRegisteredName()
                                                     .replaceFirst("[A-Za-z0-9]+:", "")
                                                     + ".cold_offset_threshold"
                                     ),
                                     2 + 0.25 * enchantments.getLevel(enchantment),
-                                    EntityAttributeModifier.Operation.ADD_VALUE
+                                    AttributeModifier.Operation.ADD_VALUE
                             ),
                             slot
                     );

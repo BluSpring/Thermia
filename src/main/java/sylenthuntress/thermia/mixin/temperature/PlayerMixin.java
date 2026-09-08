@@ -1,12 +1,12 @@
 package sylenthuntress.thermia.mixin.temperature;
 
 import com.mojang.authlib.GameProfile;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,12 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-@Mixin(PlayerEntity.class)
-public abstract class PlayerEntityMixin extends LivingEntity {
+@Mixin(Player.class)
+public abstract class PlayerMixin extends LivingEntity {
     @Unique
     protected boolean thermia$applyThermoregulation = false;
 
-    protected PlayerEntityMixin(EntityType<? extends LivingEntity> entityType, World world) {
+    protected PlayerMixin(EntityType<? extends LivingEntity> entityType, Level world) {
         super(entityType, world);
     }
 
@@ -36,8 +36,8 @@ public abstract class PlayerEntityMixin extends LivingEntity {
             method = "<init>",
             at = @At("TAIL")
     )
-    private void thermia$allowThermoregulation(World world, BlockPos pos, float yaw, GameProfile gameProfile, CallbackInfo ci) {
-        if (world.isClient()) {
+    private void thermia$allowThermoregulation(Level world, BlockPos pos, float yaw, GameProfile gameProfile, CallbackInfo ci) {
+        if (world.isClientSide()) {
             return;
         }
 
@@ -71,8 +71,8 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
         thermia$applyThermoregulation = false;
 
-        this.addStatusEffect(
-                new StatusEffectInstance(
+        this.addEffect(
+                new MobEffectInstance(
                         ThermiaStatusEffects.THERMOREGULATION,
                         6000,
                         0,
@@ -85,12 +85,12 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     }
 
     @ModifyVariable(
-            method = "addExhaustion",
+            method = "causeFoodExhaustion",
             at = @At("HEAD"),
             argsOnly = true
     )
     private float thermia$modifyExhaustion(float exhaustion) {
-        if (TemperatureHelper.getTemperatureManager((PlayerEntity) (Object) this).isHyperthermic())
+        if (TemperatureHelper.getTemperatureManager((Player) (Object) this).isHyperthermic())
             exhaustion *= 2;
         return exhaustion;
     }

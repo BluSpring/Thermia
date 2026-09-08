@@ -1,6 +1,6 @@
 package sylenthuntress.thermia.config;
 
-import net.minecraft.entity.EntityType;
+import net.minecraft.world.entity.EntityType;
 import sylenthuntress.thermia.Thermia;
 
 import java.util.List;
@@ -8,9 +8,9 @@ import java.util.List;
 public abstract class ConfigHelper {
     @SuppressWarnings("deprecation")
     private static boolean isInStringList(EntityType<?> entityType, List<String> list, boolean invertList) {
-        return (entityType.getRegistryEntry().streamTags().map(
-                key -> "#" + key.id().toString()
-        ).anyMatch(list::contains) || list.contains(EntityType.getId(entityType).toString()))
+        return (entityType.builtInRegistryHolder().tags().map(
+                key -> "#" + key.location().toString()
+        ).anyMatch(list::contains) || list.contains(EntityType.getKey(entityType).toString()))
                 != invertList;
     }
 

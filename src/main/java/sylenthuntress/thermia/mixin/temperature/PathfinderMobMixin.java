@@ -1,17 +1,17 @@
 package sylenthuntress.thermia.mixin.temperature;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.mob.PathAwareEntity;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.core.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import sylenthuntress.thermia.temperature.TemperatureHelper;
 
-@Mixin(PathAwareEntity.class)
-public class PathAwareEntityMixin {
+@Mixin(PathfinderMob.class)
+public class PathfinderMobMixin {
     @ModifyReturnValue(
-            method = "getPathfindingFavor(Lnet/minecraft/util/math/BlockPos;)F",
+            method = "getWalkTargetValue(Lnet/minecraft/core/BlockPos;)F",
             at = @At("RETURN")
     )
     private float thermia$modifyFavorWithTemperature(float original, BlockPos pos) {
@@ -22,7 +22,7 @@ public class PathAwareEntityMixin {
 
         var temperatureManager = TemperatureHelper.getTemperatureManager(entity);
         float temperatureFavor = temperatureManager.distanceFromTemperateBounds(
-                (TemperatureHelper.getBlockTemperature(entity.getWorld(), pos)
+                (TemperatureHelper.getBlockTemperature(entity.level(), pos)
                         + temperatureManager.getModifiedTemperature()) / 2
         ) * 0.1F;
 

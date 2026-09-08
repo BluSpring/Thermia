@@ -3,24 +3,24 @@ package sylenthuntress.thermia.temperature;
 import io.wispforest.owo.config.ConfigSynchronizer;
 import net.fabricmc.fabric.api.tag.convention.v2.ConventionalBiomeTags;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.FluidTags;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.state.property.Properties;
-import net.minecraft.text.Text;
-import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.LightType;
-import net.minecraft.world.World;
-import net.minecraft.world.biome.Biome;
-import net.minecraft.world.dimension.DimensionType;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.core.Holder;
+import net.minecraft.tags.FluidTags;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.network.chat.Component;
+import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.LightLayer;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.dimension.DimensionType;
 import sylenthuntress.thermia.Thermia;
 import sylenthuntress.thermia.access.LivingEntityAccess;
 import sylenthuntress.thermia.compat.SereneSeasonsCompatBase;
@@ -39,7 +39,7 @@ public abstract class TemperatureHelper {
             new DecimalFormat("#.###"), format -> format.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(Locale.ROOT))
     );
 
-    public static double getRegionalTemperature(World world, BlockPos blockPos) {
+    public static double getRegionalTemperature(Level world, BlockPos blockPos) {
         double regionalTemperature = 100.0F;
 
         // Guard-return if config toggle is off
@@ -47,11 +47,11 @@ public abstract class TemperatureHelper {
             return regionalTemperature;
         }
 
-        final DimensionType dimension = world.getDimension();
-        final RegistryEntry<Biome> biome = world.getBiome(blockPos);
-        float biomeTemperature = biome.value().getTemperature();
+        final DimensionType dimension = world.dimensionType();
+        final Holder<Biome> biome = world.getBiome(blockPos);
+        float biomeTemperature = biome.value().getBaseTemperature();
 
-        if (dimension.ultrawarm())
+        if (dimension.ultraWarm())
             biomeTemperature *= 2;
 
         // Guard return for skylight calculations in nether-like dimensions
@@ -59,29 +59,29 @@ public abstract class TemperatureHelper {
             return (-1 + biomeTemperature) * 5;
 
         // Calculate skylight modifier
-        float maxTimeBonus = biome.isIn(ConventionalBiomeTags.IS_DRY) ? 2.5F : 1F;
+        float maxTimeBonus = biome.is(ConventionalBiomeTags.IS_DRY) ? 2.5F : 1F;
         float timeBonus = (float) (
                 (maxTimeBonus / 2) * Math.cos(
-                        world.getSkyAngleRadians(1.0F)
+                        world.getSunAngle(1.0F)
                 ) + 1
         );
 
-        if (!world.isSkyVisibleAllowingSea(blockPos.add(0, 1, 0))) {
+        if (!world.canSeeSkyFromBelowWater(blockPos.offset(0, 1, 0))) {
             timeBonus -= maxTimeBonus * 0.5F;
         }
 
         for (Entity entity
-                : world.getNonSpectatingEntities(Entity.class, Box.from(Vec3d.of(blockPos.add(0, 6, 0))))) {
+                : world.getEntitiesOfClass(Entity.class, AABB.unitCubeFromLowerCorner(Vec3.atLowerCornerOf(blockPos.offset(0, 6, 0))))) {
             timeBonus -= 0.1F;
 
             if (entity instanceof LivingEntity livingEntity) {
                 for (EquipmentSlot slot : EquipmentSlot.VALUES) {
-                    final var component = livingEntity.getEquippedStack(slot).getOrDefault(
+                    final var component = livingEntity.getItemBySlot(slot).getOrDefault(
                             ThermiaComponents.SUN_BLOCKING,
                             SunBlockingComponent.DEFAULT
                     );
 
-                    if (!component.slot().matches(slot)) {
+                    if (!component.slot().test(slot)) {
                         continue;
                     }
 
@@ -103,7 +103,7 @@ public abstract class TemperatureHelper {
         return regionalTemperature;
     }
 
-    public static double getBlockTemperature(World world, BlockPos blockPos) {
+    public static double getBlockTemperature(Level world, BlockPos blockPos) {
         double blockTemperature = 0;
 
         // Guard-return if config toggle is off
@@ -112,30 +112,30 @@ public abstract class TemperatureHelper {
         }
 
         final BlockState blockState = world.getBlockState(blockPos);
-        if (blockState.get(Properties.WATERLOGGED, false) || blockState.isLiquid()) {
+        if (blockState.getValueOrElse(BlockStateProperties.WATERLOGGED, false) || blockState.liquid()) {
             blockTemperature = getFluidTemperature(world, blockPos);
         }
 
-        blockTemperature += world.getLightLevel(LightType.BLOCK, blockPos) / 4F;
+        blockTemperature += world.getBrightness(LightLayer.BLOCK, blockPos) / 4F;
 
         // Early guard-return
         if (!blockState.isAir())
             return blockTemperature;
 
-        for (BlockPos pos : BlockPos.iterate(blockPos.add(-4, -4, -4), blockPos.add(4, 4, 4))) {
-            blockTemperature += world.getReceivedRedstonePower(pos) / 8F;
+        for (BlockPos pos : BlockPos.betweenClosed(blockPos.offset(-4, -4, -4), blockPos.offset(4, 4, 4))) {
+            blockTemperature += world.getBestNeighborSignal(pos) / 8F;
 
             final BlockState nearbyBlock = world.getBlockState(pos);
-            if (nearbyBlock.isIn(ThermiaTags.Block.COLD_BLOCKS)) {
+            if (nearbyBlock.is(ThermiaTags.Block.COLD_BLOCKS)) {
                 blockTemperature -= 0.2;
             }
-            if (nearbyBlock.isIn(ThermiaTags.Block.HOT_BLOCKS)
-                    || nearbyBlock.get(Properties.LIT, false)) {
+            if (nearbyBlock.is(ThermiaTags.Block.HOT_BLOCKS)
+                    || nearbyBlock.getValueOrElse(BlockStateProperties.LIT, false)) {
                 blockTemperature += 0.2;
             }
 
             final FluidState fluidState = nearbyBlock.getFluidState();
-            if (fluidState.isIn(FluidTags.LAVA) && fluidState.isStill()) {
+            if (fluidState.is(FluidTags.LAVA) && fluidState.isSource()) {
                 blockTemperature += 1;
             }
         }
@@ -143,7 +143,7 @@ public abstract class TemperatureHelper {
         return blockTemperature;
     }
 
-    public static double getFluidTemperature(World world, BlockPos blockPos) {
+    public static double getFluidTemperature(Level world, BlockPos blockPos) {
         double fluidTemperature = 0;
 
         // Guard-return if config toggle is off
@@ -151,14 +151,14 @@ public abstract class TemperatureHelper {
             return fluidTemperature;
         }
 
-        for (BlockPos pos : BlockPos.iterate(blockPos.add(-1, -2, -1), blockPos.add(1, 2, 1))) {
+        for (BlockPos pos : BlockPos.betweenClosed(blockPos.offset(-1, -2, -1), blockPos.offset(1, 2, 1))) {
             final FluidState fluidState = world.getFluidState(pos);
-            if (fluidState.isIn(FluidTags.LAVA)) {
+            if (fluidState.is(FluidTags.LAVA)) {
                 fluidTemperature += 1f;
             }
 
-            if (world.getBlockState(pos).get(Properties.WATERLOGGED, false)
-                    || fluidState.isIn(FluidTags.WATER)) {
+            if (world.getBlockState(pos).getValueOrElse(BlockStateProperties.WATERLOGGED, false)
+                    || fluidState.is(FluidTags.WATER)) {
                 if (getRegionalTemperature(world, pos) < 0) {
                     fluidTemperature -= 0.1f;
                 }
@@ -170,7 +170,7 @@ public abstract class TemperatureHelper {
     }
 
     @SuppressWarnings("DuplicateBranchesInSwitch")
-    public static double getSeasonalTemperature(World world) {
+    public static double getSeasonalTemperature(Level world) {
         double seasonTemperature = 0.0;
 
         // Guard-return if config toggle is off
@@ -203,7 +203,7 @@ public abstract class TemperatureHelper {
         return seasonTemperature;
     }
 
-    public static double getAmbientTemperature(World world, BlockPos blockPos) {
+    public static double getAmbientTemperature(Level world, BlockPos blockPos) {
         double regionalTemperature = getRegionalTemperature(world, blockPos);
         double blockTemperature = getBlockTemperature(world, blockPos);
         double seasonalTemperature = getSeasonalTemperature(world);
@@ -220,7 +220,7 @@ public abstract class TemperatureHelper {
     }
 
     public static boolean lacksTemperature(Entity entity) {
-        return !(entity.isLiving()
+        return !(entity.showVehicleHealth()
                 && getTemperatureManager(entity).canHaveTemperature());
     }
 
@@ -252,7 +252,7 @@ public abstract class TemperatureHelper {
             return temperature - 273.15;
         }
 
-        public static Text convertForClient(ServerPlayerEntity player, double temperature) {
+        public static Component convertForClient(ServerPlayer player, double temperature) {
             @SuppressWarnings("DataFlowIssue") var temperatureScaleDisplay = (TemperatureScaleDisplay)
                     ConfigSynchronizer.getClientOptions(
                             player,
@@ -271,9 +271,9 @@ public abstract class TemperatureHelper {
                 }
             }
 
-            return Text.literal(
+            return Component.literal(
                     DECIMAL_FORMAT.format(temperature)
-            ).append(Text.translatable(temperatureScale));
+            ).append(Component.translatable(temperatureScale));
         }
     }
 }

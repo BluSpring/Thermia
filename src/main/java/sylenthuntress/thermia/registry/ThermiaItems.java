@@ -1,11 +1,11 @@
 package sylenthuntress.thermia.registry;
 
-import net.minecraft.item.Item;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import sylenthuntress.thermia.Thermia;
 
 public class ThermiaItems {
@@ -13,11 +13,11 @@ public class ThermiaItems {
             Thermia.modIdentifier("icon")
     );
 
-    protected static Item register(Identifier id) {
+    protected static Item register(ResourceLocation id) {
         return Registry.register(
-                Registries.ITEM,
+                BuiltInRegistries.ITEM,
                 id,
-                new Item(new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, id)))
+                new Item(new Item.Properties().setId(ResourceKey.create(Registries.ITEM, id)))
         );
     }
 

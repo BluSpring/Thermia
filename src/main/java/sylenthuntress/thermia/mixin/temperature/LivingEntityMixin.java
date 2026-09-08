@@ -1,23 +1,23 @@
 package sylenthuntress.thermia.mixin.temperature;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.attribute.AttributeContainer;
-import net.minecraft.entity.attribute.DefaultAttributeContainer;
-import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.projectile.thrown.SnowballEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.particle.ParticleTypes;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.DamageTypeTags;
-import net.minecraft.registry.tag.EntityTypeTags;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeMap;
+import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.entity.projectile.Snowball;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.core.Holder;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -41,7 +41,7 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityAc
     @Unique
     private TemperatureManager thermia$temperatureManager;
 
-    public LivingEntityMixin(EntityType<?> type, World world) {
+    public LivingEntityMixin(EntityType<?> type, Level world) {
         super(type, world);
     }
 
@@ -49,7 +49,7 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityAc
             method = "createLivingAttributes",
             at = @At("RETURN")
     )
-    private static DefaultAttributeContainer.Builder thermia$addAttributes(DefaultAttributeContainer.Builder original) {
+    private static AttributeSupplier.Builder thermia$addAttributes(AttributeSupplier.Builder original) {
         return original
                 .add(ThermiaAttributes.BASE_TEMPERATURE)
                 .add(ThermiaAttributes.COLD_OFFSET_THRESHOLD)
@@ -62,23 +62,23 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityAc
     )
     private boolean thermia$applyFrostResistance(boolean original) {
         return original
-                && !this.hasStatusEffect(ThermiaStatusEffects.FROST_RESISTANCE);
+                && !this.hasEffect(ThermiaStatusEffects.FROST_RESISTANCE);
     }
 
     @Shadow
-    public abstract boolean isInvulnerableTo(ServerWorld world, DamageSource source);
+    public abstract boolean isInvulnerableTo(ServerLevel world, DamageSource source);
 
     @Shadow
-    public abstract boolean hasStatusEffect(RegistryEntry<StatusEffect> effect);
+    public abstract boolean hasEffect(Holder<MobEffect> effect);
 
     @Shadow
-    public abstract ItemStack getEquippedStack(EquipmentSlot slot);
+    public abstract ItemStack getItemBySlot(EquipmentSlot slot);
 
     @Shadow
-    public abstract double getAttributeValue(RegistryEntry<EntityAttribute> attribute);
+    public abstract double getAttributeValue(Holder<Attribute> attribute);
 
     @Shadow
-    public abstract double getAttributeBaseValue(RegistryEntry<EntityAttribute> attribute);
+    public abstract double getAttributeBaseValue(Holder<Attribute> attribute);
 
     public TemperatureManager thermia$getTemperatureManager() {
         return thermia$temperatureManager;
@@ -88,7 +88,7 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityAc
             method = "<init>",
             at = @At("TAIL")
     )
-    private void thermia$setTemperatureManager(EntityType<? extends LivingEntity> entityType, World world, CallbackInfo ci) {
+    private void thermia$setTemperatureManager(EntityType<? extends LivingEntity> entityType, Level world, CallbackInfo ci) {
         thermia$temperatureManager = new TemperatureManager((LivingEntity) (Object) this);
     }
 
@@ -97,15 +97,15 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityAc
             at = @At("TAIL")
     )
     private void thermia$calculateTemperature(CallbackInfo ci) {
-        if (this.getWorld().isClient()) {
-            if (thermia$temperatureManager.doHeatEffects() && this.age % 6 == 0) {
-                this.getWorld().addParticle(
+        if (this.level().isClientSide()) {
+            if (thermia$temperatureManager.doHeatEffects() && this.tickCount % 6 == 0) {
+                this.level().addParticle(
                         ParticleTypes.FALLING_WATER,
                         true,
                         true,
-                        this.getParticleX(0.5),
-                        this.getRandomBodyY(),
-                        this.getParticleZ(0.5),
+                        this.getRandomX(0.5),
+                        this.getRandomY(),
+                        this.getRandomZ(0.5),
                         0.0,
                         0.0,
                         0.0
@@ -115,53 +115,53 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityAc
             return;
         }
 
-        if (this.age % 5 == 0) {
+        if (this.tickCount % 5 == 0) {
             thermia$temperatureManager.stepPassiveTemperature();
         }
     }
 
     @Inject(
-            method = "applyDamage",
+            method = "actuallyHurt",
             at = @At(value = "TAIL")
     )
-    private void thermia$damageInteractions(ServerWorld world, DamageSource source, float amount, CallbackInfo ci) {
+    private void thermia$damageInteractions(ServerLevel world, DamageSource source, float amount, CallbackInfo ci) {
         if (!this.isInvulnerableTo(world, source)) {
             TemperatureManager temperatureManager = TemperatureHelper.getTemperatureManager((LivingEntity) (Object) this);
             double[] interactionTemperatures = {0, 0};
-            if (source.getAttacker() != null) {
-                if (source.isIn(DamageTypeTags.IS_FREEZING))
+            if (source.getEntity() != null) {
+                if (source.is(DamageTypeTags.IS_FREEZING))
                     interactionTemperatures[0] -= 1.5;
-                if (source.isIn(DamageTypeTags.IS_FIRE))
+                if (source.is(DamageTypeTags.IS_FIRE))
                     interactionTemperatures[1] += 1.5;
-                if (source.getAttacker().getType().isIn(ThermiaTags.EntityType.UNDEAD))
+                if (source.getEntity().getType().is(ThermiaTags.EntityType.UNDEAD))
                     interactionTemperatures[0] -= 0.1;
-                if (source.getAttacker().getType().isIn(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES))
+                if (source.getEntity().getType().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES))
                     interactionTemperatures[1] += 0.5;
             } else {
-                if (source.isIn(DamageTypeTags.BURN_FROM_STEPPING))
+                if (source.is(DamageTypeTags.BURN_FROM_STEPPING))
                     interactionTemperatures[1] += 0.5;
             }
-            if (source.getSource() instanceof SnowballEntity)
+            if (source.getDirectEntity() instanceof Snowball)
                 interactionTemperatures[0] -= 3;
-            if (source.isIn(DamageTypeTags.IS_LIGHTNING))
+            if (source.is(DamageTypeTags.IS_LIGHTNING))
                 interactionTemperatures[1] += 10;
             temperatureManager.modifyTemperature(interactionTemperatures);
         }
     }
 
     @Inject(
-            method = "getEquipmentChanges",
+            method = "collectEquipmentChanges",
             at = @At("HEAD")
     )
     private void thermia$addTemperatureModifiers(CallbackInfoReturnable<Map<EquipmentSlot, ItemStack>> cir) {
         for (EquipmentSlot slot : EquipmentSlot.VALUES) {
-            final ItemStack stack = this.getEquippedStack(slot);
+            final ItemStack stack = this.getItemBySlot(slot);
 
             for (TemperatureModifiersComponent.Entry entry : stack.getOrDefault(
                     ThermiaComponents.TEMPERATURE_MODIFIERS,
                     TemperatureModifiersComponent.DEFAULT
             ).modifiers()) {
-                if (!entry.slot().matches(slot)) {
+                if (!entry.slot().test(slot)) {
                     continue;
                 }
 
@@ -173,20 +173,20 @@ public abstract class LivingEntityMixin extends Entity implements LivingEntityAc
     }
 
     @Inject(
-            method = "onEquipmentRemoved",
+            method = "stopLocationBasedEffects",
             at = @At("TAIL")
     )
-    private void thermia$removeTemperatureModifiers(ItemStack removedEquipment, EquipmentSlot slot, AttributeContainer container, CallbackInfo ci) {
+    private void thermia$removeTemperatureModifiers(ItemStack removedEquipment, EquipmentSlot slot, AttributeMap container, CallbackInfo ci) {
         for (TemperatureModifiersComponent.Entry entry : removedEquipment.getOrDefault(
                 ThermiaComponents.TEMPERATURE_MODIFIERS,
                 TemperatureModifiersComponent.DEFAULT
         ).modifiers()) {
-            if (!entry.slot().matches(slot)) {
+            if (!entry.slot().test(slot)) {
                 continue;
             }
 
             thermia$temperatureManager.getTemperatureModifiers().removeModifier(
-                    entry.modifier().id().withPrefixedPath("granted/")
+                    entry.modifier().id().withPrefix("granted/")
             );
         }
     }

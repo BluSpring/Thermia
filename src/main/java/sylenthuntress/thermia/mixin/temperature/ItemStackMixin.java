@@ -1,20 +1,20 @@
 package sylenthuntress.thermia.mixin.temperature;
 
-import net.minecraft.component.ComponentHolder;
-import net.minecraft.component.ComponentType;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.MergedComponentMap;
-import net.minecraft.component.type.AttributeModifierSlot;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemConvertible;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.consume.ApplyEffectsConsumeEffect;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.TagKey;
+import net.minecraft.core.component.DataComponentHolder;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.component.PatchedDataComponentMap;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.consume_effects.ApplyStatusEffectsConsumeEffect;
+import net.minecraft.core.Holder;
+import net.minecraft.tags.TagKey;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,25 +33,25 @@ import sylenthuntress.thermia.temperature.TemperatureModifier;
 import java.util.Arrays;
 
 @Mixin(ItemStack.class)
-public abstract class ItemStackMixin implements ComponentHolder {
+public abstract class ItemStackMixin implements DataComponentHolder {
     @Shadow
-    public abstract boolean isIn(TagKey<Item> tag);
+    public abstract boolean is(TagKey<Item> tag);
 
     @Shadow
     @Nullable
-    public abstract <T> T set(ComponentType<? super T> type, @Nullable T value);
+    public abstract <T> T set(DataComponentType<? super T> type, @Nullable T value);
 
     @Shadow
-    public abstract boolean hasEnchantments();
+    public abstract boolean isEnchanted();
 
     @Shadow
-    public abstract ItemEnchantmentsComponent getEnchantments();
+    public abstract ItemEnchantments getEnchantments();
 
     @Inject(
-            method = "<init>(Lnet/minecraft/item/ItemConvertible;ILnet/minecraft/component/MergedComponentMap;)V",
+            method = "<init>(Lnet/minecraft/world/level/ItemLike;ILnet/minecraft/core/component/PatchedDataComponentMap;)V",
             at = @At("TAIL")
     )
-    private void thermia$applyDefaultComponents(ItemConvertible item, int count, MergedComponentMap components, CallbackInfo ci) {
+    private void thermia$applyDefaultComponents(ItemLike item, int count, PatchedDataComponentMap components, CallbackInfo ci) {
         if (!Thermia.SERVER_LOADED) {
             return;
         }
@@ -62,13 +62,13 @@ public abstract class ItemStackMixin implements ComponentHolder {
         );
         thermia$calculateTemperatureModifiers(modifiers);
 
-        if (!this.contains(DataComponentTypes.CONSUMABLE)) {
+        if (!this.has(DataComponents.CONSUMABLE)) {
             return;
         }
 
-        if (this.contains(DataComponentTypes.CONSUMABLE)
-                && !this.contains(ThermiaComponents.CONSUMABLE_TEMPERATURE)) {
-            final var component = this.get(DataComponentTypes.CONSUMABLE);
+        if (this.has(DataComponents.CONSUMABLE)
+                && !this.has(ThermiaComponents.CONSUMABLE_TEMPERATURE)) {
+            final var component = this.get(DataComponents.CONSUMABLE);
             final double[] degrees = thermia$calculateConsumableTemperatures();
 
             if (Arrays.stream(degrees).anyMatch(value -> value != 0)) {
@@ -78,13 +78,13 @@ public abstract class ItemStackMixin implements ComponentHolder {
                 );
             }
 
-            if (this.isIn(ThermiaTags.Item.Consumable.APPLIES_FROST_RESISTANCE)) {
+            if (this.is(ThermiaTags.Item.Consumable.APPLIES_FROST_RESISTANCE)) {
                 @SuppressWarnings("DataFlowIssue") final var consumeEffects = component.onConsumeEffects();
 
                 int duration = consumeEffects.stream().mapToInt(consumeEffect -> {
-                    if (consumeEffect instanceof ApplyEffectsConsumeEffect consumeStatusEffect) {
+                    if (consumeEffect instanceof ApplyStatusEffectsConsumeEffect consumeStatusEffect) {
                         return consumeStatusEffect.effects().stream().mapToInt(effect
-                                -> effect.getEffectType() == StatusEffects.FIRE_RESISTANCE
+                                -> effect.getEffect() == MobEffects.FIRE_RESISTANCE
                                 ? effect.getDuration()
                                 : 0
                         ).sum();
@@ -98,8 +98,8 @@ public abstract class ItemStackMixin implements ComponentHolder {
                 }
 
                 consumeEffects.add(
-                        new ApplyEffectsConsumeEffect(
-                                new StatusEffectInstance(
+                        new ApplyStatusEffectsConsumeEffect(
+                                new MobEffectInstance(
                                         ThermiaStatusEffects.FROST_RESISTANCE,
                                         duration
                                 )
@@ -113,16 +113,16 @@ public abstract class ItemStackMixin implements ComponentHolder {
     private double[] thermia$calculateConsumableTemperatures() {
         double[] temperatures = {0, 0, 0};
 
-        if (this.isIn(ThermiaTags.Item.Consumable.COLD_FOODS)) {
+        if (this.is(ThermiaTags.Item.Consumable.COLD_FOODS)) {
             temperatures[0] -= 2;
         }
-        if (this.isIn(ThermiaTags.Item.Consumable.REFRESHING_FOODS)) {
+        if (this.is(ThermiaTags.Item.Consumable.REFRESHING_FOODS)) {
             temperatures[0] -= 0.5;
         }
-        if (this.isIn(ThermiaTags.Item.Consumable.WARM_FOODS)) {
+        if (this.is(ThermiaTags.Item.Consumable.WARM_FOODS)) {
             temperatures[0] += 0.5;
         }
-        if (this.isIn(ThermiaTags.Item.Consumable.HOT_FOODS)) {
+        if (this.is(ThermiaTags.Item.Consumable.HOT_FOODS)) {
             temperatures[0] += 2;
         }
 
@@ -131,7 +131,7 @@ public abstract class ItemStackMixin implements ComponentHolder {
 
     @Unique
     private void thermia$calculateTemperatureModifiers(TemperatureModifiersComponent component) {
-        if (this.isIn(ThermiaTags.Item.Equippable.COLD_WHEN_HELD)) {
+        if (this.is(ThermiaTags.Item.Equippable.COLD_WHEN_HELD)) {
             this.set(
                     ThermiaComponents.TEMPERATURE_MODIFIERS,
                     component.with(
@@ -140,11 +140,11 @@ public abstract class ItemStackMixin implements ComponentHolder {
                                     -1,
                                     TemperatureModifier.Operation.ADD_VALUE
                             ),
-                            AttributeModifierSlot.HAND
+                            EquipmentSlotGroup.HAND
                     )
             );
         }
-        if (this.isIn(ThermiaTags.Item.Equippable.HOT_WHEN_HELD)) {
+        if (this.is(ThermiaTags.Item.Equippable.HOT_WHEN_HELD)) {
             this.set(
                     ThermiaComponents.TEMPERATURE_MODIFIERS,
                     component.with(
@@ -153,28 +153,28 @@ public abstract class ItemStackMixin implements ComponentHolder {
                                     1,
                                     TemperatureModifier.Operation.ADD_VALUE
                             ),
-                            AttributeModifierSlot.HAND
+                            EquipmentSlotGroup.HAND
                     )
             );
         }
 
         // Guard-return for unenchanted items
-        if (!this.hasEnchantments()) {
+        if (!this.isEnchanted()) {
             return;
         }
 
         // Apply default enchantment temperature modifiers
         final var enchantments = this.getEnchantments();
-        for (RegistryEntry<Enchantment> enchantment : enchantments.getEnchantments()) {
-            for (AttributeModifierSlot slot : enchantment.value().definition().slots()) {
-                if (enchantment.isIn(ThermiaTags.Enchantment.PROVIDES_CHILL)) {
+        for (Holder<Enchantment> enchantment : enchantments.keySet()) {
+            for (EquipmentSlotGroup slot : enchantment.value().definition().slots()) {
+                if (enchantment.is(ThermiaTags.Enchantment.PROVIDES_CHILL)) {
                     this.set(
                             ThermiaComponents.TEMPERATURE_MODIFIERS,
                             component.with(
                                     new TemperatureModifier(
                                             Thermia.modIdentifier(
                                                     "enchantment."
-                                                            + enchantment.getIdAsString()
+                                                            + enchantment.getRegisteredName()
                                                             .replaceFirst("[A-Za-z0-9]+:", "")
                                                             + ".chill"
                                             ),
@@ -186,14 +186,14 @@ public abstract class ItemStackMixin implements ComponentHolder {
                     );
                 }
 
-                if (enchantment.isIn(ThermiaTags.Enchantment.PROVIDES_WARMTH)) {
+                if (enchantment.is(ThermiaTags.Enchantment.PROVIDES_WARMTH)) {
                     this.set(
                             ThermiaComponents.TEMPERATURE_MODIFIERS,
                             component.with(
                                     new TemperatureModifier(
                                             Thermia.modIdentifier(
                                                     "enchantment."
-                                                            + enchantment.getIdAsString()
+                                                            + enchantment.getRegisteredName()
                                                             .replaceFirst("[A-Za-z0-9]+:", "")
                                                             + ".warmth"
                                             ),

@@ -2,18 +2,18 @@ package sylenthuntress.thermia.registry.data_component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.component.type.Consumable;
-import net.minecraft.component.type.ConsumableComponent;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.world.World;
+import net.minecraft.world.item.component.ConsumableListener;
+import net.minecraft.world.item.component.Consumable;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
 import sylenthuntress.thermia.access.LivingEntityAccess;
 import sylenthuntress.thermia.temperature.TemperatureManager;
 
 import java.util.Random;
 
 public record ConsumableTemperatureComponent(double temperature, double minTemperature,
-                                             double maxTemperature) implements Consumable {
+                                             double maxTemperature) implements ConsumableListener {
     public static final Codec<ConsumableTemperatureComponent> CODEC = RecordCodecBuilder.create(
             instance -> instance.group(
                             Codec.DOUBLE.fieldOf("temperature").forGetter(ConsumableTemperatureComponent::temperature),
@@ -28,7 +28,7 @@ public record ConsumableTemperatureComponent(double temperature, double minTempe
     }
 
     @Override
-    public void onConsume(World world, LivingEntity user, ItemStack stack, ConsumableComponent consumable) {
+    public void onConsume(Level world, LivingEntity user, ItemStack stack, Consumable consumable) {
         double temperature = temperature();
 
         if (maxTemperature > minTemperature) {

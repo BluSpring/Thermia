@@ -6,8 +6,8 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.resources.ResourceLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import sylenthuntress.thermia.compat.SereneSeasonsCompatBase;
@@ -26,8 +26,8 @@ public class Thermia implements ModInitializer {
     public static boolean SERVER_LOADED = false;
     public static final ThermiaConfig CONFIG = ThermiaConfig.createAndLoad();
 
-    public static Identifier modIdentifier(String path) {
-        return Identifier.of(MOD_ID, path);
+    public static ResourceLocation modIdentifier(String path) {
+        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 
     public void onInitialize() {
@@ -60,8 +60,8 @@ public class Thermia implements ModInitializer {
         ServerPlayerEvents.AFTER_RESPAWN.register((
                 oldPlayer,
                 newPlayer,
-                alive) -> newPlayer.addStatusEffect(
-                new StatusEffectInstance(
+                alive) -> newPlayer.addEffect(
+                new MobEffectInstance(
                         ThermiaStatusEffects.THERMOREGULATION,
                         1500,
                         0,

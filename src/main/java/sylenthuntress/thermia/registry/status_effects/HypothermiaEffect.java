@@ -1,55 +1,55 @@
 package sylenthuntress.thermia.registry.status_effects;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.attribute.AttributeContainer;
-import net.minecraft.entity.attribute.EntityAttributeInstance;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.effect.StatusEffectCategory;
-import net.minecraft.server.world.ServerWorld;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.AttributeMap;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.server.level.ServerLevel;
 import sylenthuntress.thermia.Thermia;
 
-public class HypothermiaEffect extends StatusEffect {
-    public HypothermiaEffect(StatusEffectCategory category, int color) {
+public class HypothermiaEffect extends MobEffect {
+    public HypothermiaEffect(MobEffectCategory category, int color) {
         super(category, color);
     }
 
     @Override
-    public boolean applyUpdateEffect(ServerWorld world, LivingEntity entity, int amplifier) {
-        if (!entity.isFrozen()) {
-            entity.damage(world, entity.getDamageSources().freeze(), 0.5F);
+    public boolean applyEffectTick(ServerLevel world, LivingEntity entity, int amplifier) {
+        if (!entity.isFullyFrozen()) {
+            entity.hurtServer(world, entity.damageSources().freeze(), 0.5F);
         }
 
         return true;
     }
 
     @Override
-    public boolean canApplyUpdateEffect(int duration, int amplifier) {
+    public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {
         int damageInterval = 120 >> amplifier;
         return damageInterval == 0 || duration % damageInterval == 0;
     }
 
     @Override
-    public void onApplied(LivingEntity entity, int amplifier) {
-        super.onApplied(entity, amplifier);
+    public void onEffectStarted(LivingEntity entity, int amplifier) {
+        super.onEffectStarted(entity, amplifier);
 
-        EntityAttributeInstance attribute = entity.getAttributes().getCustomInstance(EntityAttributes.MOVEMENT_SPEED);
+        AttributeInstance attribute = entity.getAttributes().getInstance(Attributes.MOVEMENT_SPEED);
 
         if (attribute != null && !attribute.hasModifier(Thermia.modIdentifier("effect.hypothermia.slowness")))
-            attribute.addPersistentModifier(
-                    new EntityAttributeModifier(
+            attribute.addPermanentModifier(
+                    new AttributeModifier(
                             Thermia.modIdentifier("effect.hypothermia.slowness"),
                             -(0.05 * (1 + amplifier * 0.1)),
-                            EntityAttributeModifier.Operation.ADD_VALUE
+                            AttributeModifier.Operation.ADD_VALUE
                     )
             );
     }
 
     @SuppressWarnings("DataFlowIssue")
     @Override
-    public void onRemoved(AttributeContainer container) {
-        container.getCustomInstance(EntityAttributes.MOVEMENT_SPEED)
+    public void removeAttributeModifiers(AttributeMap container) {
+        container.getInstance(Attributes.MOVEMENT_SPEED)
                 .removeModifier(Thermia.modIdentifier("effect.hypothermia.slowness"));
     }
 }

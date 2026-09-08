@@ -1,12 +1,12 @@
 package sylenthuntress.thermia.client.event;
 
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.tooltip.TooltipType;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 import sylenthuntress.thermia.Thermia;
 import sylenthuntress.thermia.registry.ThermiaComponents;
 import sylenthuntress.thermia.registry.data_component.TemperatureModifiersComponent;
@@ -16,18 +16,18 @@ import java.util.List;
 public class ConsumableTemperatureTooltip implements ItemTooltipCallback {
     @SuppressWarnings("DataFlowIssue")
     @Override
-    public void getTooltip(ItemStack stack, Item.TooltipContext context, TooltipType type, List<Text> lines) {
-        if (!stack.contains(ThermiaComponents.CONSUMABLE_TEMPERATURE)) {
+    public void getTooltip(ItemStack stack, Item.TooltipContext context, TooltipFlag type, List<Component> lines) {
+        if (!stack.has(ThermiaComponents.CONSUMABLE_TEMPERATURE)) {
             return;
         }
 
         lines.add(1,
-                Text.translatable(
+                Component.translatable(
                         "temperature.modifiers.consumable"
-                ).formatted(Formatting.GRAY)
+                ).withStyle(ChatFormatting.GRAY)
         );
         lines.add(1,
-                ScreenTexts.EMPTY
+                CommonComponents.EMPTY
         );
 
         double amount = stack.get(ThermiaComponents.CONSUMABLE_TEMPERATURE).temperature();
@@ -53,48 +53,48 @@ public class ConsumableTemperatureTooltip implements ItemTooltipCallback {
         if (minAmount < maxAmount) {
             if (amount != 0) {
                 lines.add(3,
-                        Text.translatable(
+                        Component.translatable(
                                 "temperature.modifier.random",
                                 minAmount,
                                 maxAmount
                         ).append(
-                                Text.translatable(temperatureScale)
-                        ).formatted(Formatting.GRAY, Formatting.ITALIC)
+                                Component.translatable(temperatureScale)
+                        ).withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC)
                 );
             } else {
                 if (minAmount > 0.0) {
                     lines.add(3,
-                            Text.translatable(
+                            Component.translatable(
                                     "temperature.modifier.random.hot",
                                     TemperatureModifiersComponent.DECIMAL_FORMAT.format(minAmount),
                                     TemperatureModifiersComponent.DECIMAL_FORMAT.format(maxAmount)
                             ).append(
-                                    Text.translatable(temperatureScale)
+                                    Component.translatable(temperatureScale)
                             ).append(
-                                    Text.translatable("temperature.symbol.fire", " ")
-                            ).formatted(Formatting.GOLD)
+                                    Component.translatable("temperature.symbol.fire", " ")
+                            ).withStyle(ChatFormatting.GOLD)
                     );
                 } else if (minAmount < 0.0 && maxAmount < 0.0) {
                     lines.add(3,
-                            Text.translatable(
+                            Component.translatable(
                                     "temperature.modifier.random.cold",
                                     TemperatureModifiersComponent.DECIMAL_FORMAT.format(minAmount),
                                     TemperatureModifiersComponent.DECIMAL_FORMAT.format(maxAmount)
                             ).append(
-                                    Text.translatable(temperatureScale)
+                                    Component.translatable(temperatureScale)
                             ).append(
-                                    Text.translatable("temperature.symbol.snowflake", " ")
-                            ).formatted(Formatting.AQUA)
+                                    Component.translatable("temperature.symbol.snowflake", " ")
+                            ).withStyle(ChatFormatting.AQUA)
                     );
                 } else {
                     lines.add(3,
-                            Text.translatable(
+                            Component.translatable(
                                     "temperature.modifier.random.neutral",
                                     minAmount,
                                     maxAmount
                             ).append(
-                                    Text.translatable(temperatureScale)
-                            ).formatted(Formatting.BLUE)
+                                    Component.translatable(temperatureScale)
+                            ).withStyle(ChatFormatting.BLUE)
                     );
                 }
 
@@ -104,25 +104,25 @@ public class ConsumableTemperatureTooltip implements ItemTooltipCallback {
 
         if (amount > 0.0) {
             lines.add(3,
-                    Text.translatable(
+                    Component.translatable(
                             "temperature.modifier.hot.0",
                             TemperatureModifiersComponent.DECIMAL_FORMAT.format(amount)
                     ).append(
-                            Text.translatable(temperatureScale)
+                            Component.translatable(temperatureScale)
                     ).append(
-                            Text.translatable("temperature.symbol.fire", " ")
-                    ).formatted(Formatting.GOLD)
+                            Component.translatable("temperature.symbol.fire", " ")
+                    ).withStyle(ChatFormatting.GOLD)
             );
         } else if (amount < 0.0) {
             lines.add(3,
-                    Text.translatable(
+                    Component.translatable(
                             "temperature.modifier.cold.0",
                             TemperatureModifiersComponent.DECIMAL_FORMAT.format(-amount)
                     ).append(
-                            Text.translatable(temperatureScale)
+                            Component.translatable(temperatureScale)
                     ).append(
-                            Text.translatable("temperature.symbol.snowflake", " ")
-                    ).formatted(Formatting.AQUA)
+                            Component.translatable("temperature.symbol.snowflake", " ")
+                    ).withStyle(ChatFormatting.AQUA)
             );
         }
     }
