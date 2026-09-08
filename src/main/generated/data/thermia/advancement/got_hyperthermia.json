@@ -1,5 +1,5 @@
 {
-  "parent": "minecraft:thermia/root",
+  "parent": "thermia:root",
   "criteria": {
     "got_hyperthermia": {
       "trigger": "thermia:player_overheating"
@@ -10,7 +10,6 @@
       "translate": "advancements.thermia.got_hyperthermia.description"
     },
     "icon": {
-      "count": 1,
       "id": "minecraft:magma_block"
     },
     "title": {

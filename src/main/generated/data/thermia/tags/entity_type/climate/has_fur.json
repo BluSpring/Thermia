@@ -4,6 +4,7 @@
     "minecraft:cat",
     "minecraft:cow",
     "minecraft:donkey",
+    "minecraft:fox",
     "minecraft:goat",
     "minecraft:horse",
     "minecraft:mooshroom",
@@ -11,6 +12,7 @@
     "minecraft:ocelot",
     "minecraft:panda",
     "minecraft:polar_bear",
+    "minecraft:rabbit",
     "minecraft:sniffer",
     "minecraft:wolf"
   ]

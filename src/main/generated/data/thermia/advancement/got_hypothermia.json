@@ -1,5 +1,5 @@
 {
-  "parent": "minecraft:thermia/root",
+  "parent": "thermia:root",
   "criteria": {
     "got_hypothermia": {
       "trigger": "thermia:player_frozen"
@@ -10,7 +10,6 @@
       "translate": "advancements.thermia.got_hypothermia.description"
     },
     "icon": {
-      "count": 1,
       "id": "minecraft:powder_snow_bucket"
     },
     "title": {
