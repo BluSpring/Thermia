@@ -1,8 +1,9 @@
 package sylenthuntress.thermia.mixin.temperature;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.goal.RandomStrollGoal;
+import org.objectweb.asm.Opcodes;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -18,8 +19,9 @@ public class RandomStrollGoalMixin {
     @ModifyExpressionValue(
             method = "canUse",
             at = @At(
-                    value = "FIELD",
-                    target = "Lnet/minecraft/world/entity/ai/goal/RandomStrollGoal;interval:I"
+                value = "FIELD",
+                target = "Lnet/minecraft/world/entity/ai/goal/RandomStrollGoal;interval:I",
+                opcode = Opcodes.GETFIELD
             )
     )
     private int thermia$increaseChanceWithTemperature(int original) {

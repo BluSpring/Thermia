@@ -29,7 +29,6 @@ public abstract class PlayerMixin extends LivingEntity {
         super(entityType, world);
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     @Inject(
             method = "<init>",
             at = @At("TAIL")
@@ -83,9 +82,10 @@ public abstract class PlayerMixin extends LivingEntity {
     }
 
     @ModifyVariable(
-            method = "causeFoodExhaustion",
-            at = @At("HEAD"),
-            argsOnly = true
+        method = "causeFoodExhaustion",
+        at = @At("HEAD"),
+        argsOnly = true,
+        name = "amount"
     )
     private float thermia$modifyExhaustion(float exhaustion) {
         if (TemperatureHelper.getTemperatureManager((Player) (Object) this).isHyperthermic())

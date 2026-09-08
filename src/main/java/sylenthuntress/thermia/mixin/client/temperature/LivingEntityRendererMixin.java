@@ -9,7 +9,7 @@ import sylenthuntress.thermia.temperature.TemperatureHelper;
 
 @Mixin(LivingEntityRenderer.class)
 public class LivingEntityRendererMixin {
-    @ModifyExpressionValue(method = "extractRenderState(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;isFrozen()Z"))
+    @ModifyExpressionValue(method = "extractRenderState(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/client/renderer/entity/state/LivingEntityRenderState;F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/LivingEntity;isFullyFrozen()Z"))
     private boolean thermia$hypothermiaShaking(boolean original, LivingEntity entity) {
         return original || TemperatureHelper.getTemperatureManager(entity).doColdEffects();
     }

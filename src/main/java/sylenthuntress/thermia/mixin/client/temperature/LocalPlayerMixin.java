@@ -10,7 +10,7 @@ import sylenthuntress.thermia.temperature.TemperatureHelper;
 @SuppressWarnings("ConstantValue")
 @Mixin(LocalPlayer.class)
 public abstract class LocalPlayerMixin {
-    @ModifyReturnValue(method = "hasEnoughFoodToStartSprinting", at = @At("RETURN"))
+    @ModifyReturnValue(method = "isSprintingPossible", at = @At("RETURN"))
     private boolean thermia$disableSprinting(boolean original) {
         return original && !TemperatureHelper.getTemperatureManager((Player) (Object) this).isHyperthermic();
     }

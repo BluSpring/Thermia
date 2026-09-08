@@ -13,21 +13,19 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public record TemperatureModifiersComponent(List<Entry> modifiers, boolean showInTooltip) {
-    public static final TemperatureModifiersComponent DEFAULT = new TemperatureModifiersComponent(List.of(), true);
+public record TemperatureModifiersComponent(List<Entry> modifiers) {
+    public static final TemperatureModifiersComponent DEFAULT = new TemperatureModifiersComponent(List.of());
     public static final DecimalFormat DECIMAL_FORMAT = Util.make(
             new DecimalFormat("#.##"), format -> format.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(Locale.ROOT))
     );
     private static final Codec<TemperatureModifiersComponent> BASE_CODEC = RecordCodecBuilder.create(
             instance -> instance.group(
-                            TemperatureModifiersComponent.Entry.CODEC.listOf().fieldOf("modifiers").forGetter(TemperatureModifiersComponent::modifiers),
-                            Codec.BOOL.optionalFieldOf("show_in_tooltip", true).forGetter(TemperatureModifiersComponent::showInTooltip)
+                            TemperatureModifiersComponent.Entry.CODEC.listOf().fieldOf("modifiers").forGetter(TemperatureModifiersComponent::modifiers)
                     )
                     .apply(instance, TemperatureModifiersComponent::new)
     );
     public static final Codec<TemperatureModifiersComponent> CODEC = Codec.withAlternative(
-            BASE_CODEC, TemperatureModifiersComponent.Entry.CODEC.listOf(), entries
-                    -> new TemperatureModifiersComponent(entries, true)
+            BASE_CODEC, TemperatureModifiersComponent.Entry.CODEC.listOf(), TemperatureModifiersComponent::new
     );
 
     public TemperatureModifiersComponent with(TemperatureModifier modifier, EquipmentSlotGroup slot) {
@@ -44,7 +42,7 @@ public record TemperatureModifiersComponent(List<Entry> modifiers, boolean showI
                 )
         );
 
-        return new TemperatureModifiersComponent(newModifiers, this.showInTooltip);
+        return new TemperatureModifiersComponent(newModifiers);
     }
 
     public boolean hasModifier(Identifier id) {

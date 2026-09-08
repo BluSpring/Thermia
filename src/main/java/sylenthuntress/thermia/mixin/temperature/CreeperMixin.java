@@ -15,7 +15,7 @@ public class CreeperMixin {
             method = "spawnLingeringCloud",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/world/entity/monster/Creeper;getStatusEffects()Ljava/util/Collection;"
+                    target = "Lnet/minecraft/world/entity/monster/Creeper;getActiveEffects()Ljava/util/Collection;"
             )
     )
     private Collection<MobEffectInstance> thermia$cancelClimateEffectsCloud(Collection<MobEffectInstance> original) {

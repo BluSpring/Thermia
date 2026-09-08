@@ -8,6 +8,7 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +25,7 @@ public record GrantedThermoregulation(List<UUID> playerUUIDs) {
     );
 
     public static GrantedThermoregulation addPlayer(List<UUID> playerUUIDs, GameProfile profile) {
+        playerUUIDs = new ArrayList<>(playerUUIDs);
         final UUID uuid = profile.id();
         if (uuid != null) {
             playerUUIDs.add(uuid);

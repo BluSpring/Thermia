@@ -1,21 +1,19 @@
 package sylenthuntress.thermia.mixin.temperature;
 
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponentHolder;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.PatchedDataComponentMap;
-import net.minecraft.world.entity.EquipmentSlotGroup;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
-import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.item.Item;
-import net.minecraft.world.level.ItemLike;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.consume_effects.ApplyStatusEffectsConsumeEffect;
-import net.minecraft.core.Holder;
-import net.minecraft.tags.TagKey;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -35,9 +33,6 @@ import java.util.Arrays;
 @Mixin(ItemStack.class)
 public abstract class ItemStackMixin implements DataComponentHolder {
     @Shadow
-    public abstract boolean is(TagKey<Item> tag);
-
-    @Shadow
     @Nullable
     public abstract <T> T set(DataComponentType<? super T> type, @Nullable T value);
 
@@ -47,11 +42,14 @@ public abstract class ItemStackMixin implements DataComponentHolder {
     @Shadow
     public abstract ItemEnchantments getEnchantments();
 
+    @Shadow
+    public abstract Holder<Item> typeHolder();
+
     @Inject(
-            method = "<init>(Lnet/minecraft/world/level/ItemLike;ILnet/minecraft/core/component/PatchedDataComponentMap;)V",
+            method = "<init>(Lnet/minecraft/core/Holder;ILnet/minecraft/core/component/PatchedDataComponentMap;)V",
             at = @At("TAIL")
     )
-    private void thermia$applyDefaultComponents(ItemLike item, int count, PatchedDataComponentMap components, CallbackInfo ci) {
+    private void thermia$applyDefaultComponents(Holder<Item> item, int count, PatchedDataComponentMap components, CallbackInfo ci) {
         if (!Thermia.SERVER_LOADED) {
             return;
         }
@@ -78,7 +76,7 @@ public abstract class ItemStackMixin implements DataComponentHolder {
                 );
             }
 
-            if (this.is(ThermiaTags.Item.Consumable.APPLIES_FROST_RESISTANCE)) {
+            if (item.is(ThermiaTags.Item.Consumable.APPLIES_FROST_RESISTANCE)) {
                 @SuppressWarnings("DataFlowIssue") final var consumeEffects = component.onConsumeEffects();
 
                 int duration = consumeEffects.stream().mapToInt(consumeEffect -> {
@@ -113,16 +111,16 @@ public abstract class ItemStackMixin implements DataComponentHolder {
     private double[] thermia$calculateConsumableTemperatures() {
         double[] temperatures = {0, 0, 0};
 
-        if (this.is(ThermiaTags.Item.Consumable.COLD_FOODS)) {
+        if (this.typeHolder().is(ThermiaTags.Item.Consumable.COLD_FOODS)) {
             temperatures[0] -= 2;
         }
-        if (this.is(ThermiaTags.Item.Consumable.REFRESHING_FOODS)) {
+        if (this.typeHolder().is(ThermiaTags.Item.Consumable.REFRESHING_FOODS)) {
             temperatures[0] -= 0.5;
         }
-        if (this.is(ThermiaTags.Item.Consumable.WARM_FOODS)) {
+        if (this.typeHolder().is(ThermiaTags.Item.Consumable.WARM_FOODS)) {
             temperatures[0] += 0.5;
         }
-        if (this.is(ThermiaTags.Item.Consumable.HOT_FOODS)) {
+        if (this.typeHolder().is(ThermiaTags.Item.Consumable.HOT_FOODS)) {
             temperatures[0] += 2;
         }
 
@@ -131,7 +129,7 @@ public abstract class ItemStackMixin implements DataComponentHolder {
 
     @Unique
     private void thermia$calculateTemperatureModifiers(TemperatureModifiersComponent component) {
-        if (this.is(ThermiaTags.Item.Equippable.COLD_WHEN_HELD)) {
+        if (this.typeHolder().is(ThermiaTags.Item.Equippable.COLD_WHEN_HELD)) {
             this.set(
                     ThermiaComponents.TEMPERATURE_MODIFIERS,
                     component.with(
@@ -144,7 +142,7 @@ public abstract class ItemStackMixin implements DataComponentHolder {
                     )
             );
         }
-        if (this.is(ThermiaTags.Item.Equippable.HOT_WHEN_HELD)) {
+        if (this.typeHolder().is(ThermiaTags.Item.Equippable.HOT_WHEN_HELD)) {
             this.set(
                     ThermiaComponents.TEMPERATURE_MODIFIERS,
                     component.with(

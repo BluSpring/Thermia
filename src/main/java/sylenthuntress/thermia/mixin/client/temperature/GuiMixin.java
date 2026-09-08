@@ -17,12 +17,12 @@ public class GuiMixin {
     @Final
     private Minecraft minecraft;
 
-    @ModifyExpressionValue(method = "renderCameraOverlays", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getFrozenTicks()I"))
+    @ModifyExpressionValue(method = "extractCameraOverlays", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getTicksFrozen()I"))
     private int thermia$enableFrozenOverlay(int original) {
         return TemperatureHelper.getTemperatureManager(this.minecraft.player).isHypothermic() ? 1 : original;
     }
 
-    @ModifyExpressionValue(method = "renderCameraOverlays", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getFreezingScale()F"))
+    @ModifyExpressionValue(method = "extractCameraOverlays", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/player/LocalPlayer;getPercentFrozen()F"))
     private float thermia$incrementFrozenOverlay(float original) {
         return TemperatureHelper.getTemperatureManager(this.minecraft.player).isHypothermic()
                 ? Math.min(1F, 0.01F + (0.99F * this.minecraft.player.getEffect(ThermiaStatusEffects.HYPOTHERMIA).getAmplifier() * 0.1F))

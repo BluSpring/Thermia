@@ -9,7 +9,7 @@ import sylenthuntress.thermia.temperature.TemperatureHelper;
 
 @Mixin(Gui.HeartType.class)
 public class InGameHudHeartTypeMixin {
-    @ModifyExpressionValue(method = "forPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;isFrozen()Z"))
+    @ModifyExpressionValue(method = "forPlayer", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;isFullyFrozen()Z"))
     private static boolean thermia$setFrozenHearts(boolean original, Player player) {
         return original || TemperatureHelper.getTemperatureManager(player).isHypothermic();
     }
