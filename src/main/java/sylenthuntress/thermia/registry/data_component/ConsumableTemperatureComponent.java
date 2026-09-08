@@ -2,10 +2,13 @@ package sylenthuntress.thermia.registry.data_component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import net.minecraft.world.item.component.ConsumableListener;
-import net.minecraft.world.item.component.Consumable;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.Consumable;
+import net.minecraft.world.item.component.ConsumableListener;
 import net.minecraft.world.level.Level;
 import sylenthuntress.thermia.access.LivingEntityAccess;
 import sylenthuntress.thermia.temperature.TemperatureManager;
@@ -21,6 +24,13 @@ public record ConsumableTemperatureComponent(double temperature, double minTempe
                             Codec.DOUBLE.optionalFieldOf("max_temperature", 0.0).forGetter(ConsumableTemperatureComponent::maxTemperature)
                     )
                     .apply(instance, ConsumableTemperatureComponent::new)
+    );
+
+    public static final StreamCodec<ByteBuf, ConsumableTemperatureComponent> STREAM_CODEC = StreamCodec.composite(
+        ByteBufCodecs.DOUBLE, ConsumableTemperatureComponent::temperature,
+        ByteBufCodecs.DOUBLE, ConsumableTemperatureComponent::minTemperature,
+        ByteBufCodecs.DOUBLE, ConsumableTemperatureComponent::maxTemperature,
+        ConsumableTemperatureComponent::new
     );
 
     public ConsumableTemperatureComponent(double... temperatures) {

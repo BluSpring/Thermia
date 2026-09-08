@@ -3,7 +3,11 @@ package sylenthuntress.thermia.temperature;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.ByIdMap;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 
@@ -15,6 +19,13 @@ public record TemperatureModifier(Identifier id, double amount, TemperatureModif
                             TemperatureModifier.Operation.CODEC.fieldOf("operation").forGetter(TemperatureModifier::operation)
                     )
                     .apply(instance, TemperatureModifier::new)
+    );
+
+    public static final StreamCodec<ByteBuf, TemperatureModifier> STREAM_CODEC = StreamCodec.composite(
+        Identifier.STREAM_CODEC, TemperatureModifier::id,
+        ByteBufCodecs.DOUBLE, TemperatureModifier::amount,
+        Operation.STREAM_CODEC, TemperatureModifier::operation,
+        TemperatureModifier::new
     );
 
     public boolean idMatches(Identifier id) {
@@ -35,6 +46,7 @@ public record TemperatureModifier(Identifier id, double amount, TemperatureModif
         SET_TOTAL("set_total", 2, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
 
         public static final Codec<TemperatureModifier.Operation> CODEC = StringRepresentable.fromEnum(TemperatureModifier.Operation::values);
+        public static final StreamCodec<ByteBuf, Operation> STREAM_CODEC = ByteBufCodecs.idMapper(ByIdMap.continuous(Operation::getId, Operation.values(), ByIdMap.OutOfBoundsStrategy.CLAMP), Operation::getId);
 
         private final String name;
         private final int id;

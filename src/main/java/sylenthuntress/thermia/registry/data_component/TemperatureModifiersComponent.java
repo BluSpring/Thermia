@@ -2,6 +2,9 @@ package sylenthuntress.thermia.registry.data_component;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.world.entity.EquipmentSlotGroup;
@@ -26,6 +29,11 @@ public record TemperatureModifiersComponent(List<Entry> modifiers) {
     );
     public static final Codec<TemperatureModifiersComponent> CODEC = Codec.withAlternative(
             BASE_CODEC, TemperatureModifiersComponent.Entry.CODEC.listOf(), TemperatureModifiersComponent::new
+    );
+
+    public static final StreamCodec<ByteBuf, TemperatureModifiersComponent> STREAM_CODEC = StreamCodec.composite(
+        ByteBufCodecs.<ByteBuf, Entry>list().apply(Entry.STREAM_CODEC), TemperatureModifiersComponent::modifiers,
+        TemperatureModifiersComponent::new
     );
 
     public TemperatureModifiersComponent with(TemperatureModifier modifier, EquipmentSlotGroup slot) {
@@ -56,6 +64,12 @@ public record TemperatureModifiersComponent(List<Entry> modifiers) {
                                 EquipmentSlotGroup.CODEC.optionalFieldOf("slot", EquipmentSlotGroup.ANY).forGetter(TemperatureModifiersComponent.Entry::slot)
                         )
                         .apply(instance, TemperatureModifiersComponent.Entry::new)
+        );
+
+        public static final StreamCodec<ByteBuf, Entry> STREAM_CODEC = StreamCodec.composite(
+            TemperatureModifier.STREAM_CODEC, Entry::modifier,
+            EquipmentSlotGroup.STREAM_CODEC, Entry::slot,
+            Entry::new
         );
     }
 }
